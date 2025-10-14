@@ -1,0 +1,165 @@
+[
+  {
+    "id": 1,
+    "nombre": "Azapa Taller de Alfarería Tradicional",
+    "categoria": "alfareria",
+    "descripcion": "Aprende a moldear barro y crear piezas únicas con técnicas ancestrales.",
+    "ubicacion": "Azapa",
+    "precio": 30000,
+    "imagenes": [
+      "https://storage.googleapis.com/chile-travel-static-content/2018/05/Codpa-IMG_2717-Pano.jpg",
+      "https://chileestuyo.cl/wp-content/uploads/2021/11/artesania-greda.jpg",
+      "https://chileestuyo.cl/wp-content/uploads/2023/11/Pomaire-1024x768.jpg"
+    ]
+  },
+  {
+    "id": 2,
+    "nombre": "Elaboracion de quesos",
+    "categoria": "cocina",
+    "descripcion": "Prueba los quesos, participa en su elaboracion y llevate un paquete surtido de quesos para degustar todo en el hermoso valle de codpa.",
+    "ubicacion": "Valle de codpa",
+    "precio": 25000,
+    "imagenes": [
+      "https://chileestuyo.cl/wp-content/uploads/2020/03/Valles-Azapa-Lluta-y-Codpa_portada.jpg",
+      "https://plazacodpa.cl/wp-content/uploads/2022/12/323997_383384061729246_117676250_o.jpg",
+      "https://plazacodpa.cl/wp-content/uploads/2022/12/Llamas-819x1024.png"
+    ]
+  },
+  {
+    "id": 3,
+    "nombre": "Taller de Tejido en Lana",
+    "categoria": "tejido",
+    "descripcion": "Aprende a tejer con lana local y crea tus propios accesorios.",
+    "ubicacion": "Putre",
+    "precio": 20000,
+    "imagenes": [
+      "https://image.jimcdn.com/app/cms/image/transf/none/path/sd81eaf681110892e/image/i8048b12edbb692c3/version/1700481560/image.jpg",
+      "https://imputre.cl/wp-content/uploads/2024/02/4Puno.webp",
+      "https://www.elmorrocotudo.cl/sites/elmorrocotudo.cl/files/imagecache/380x285/imagen_noticia/2_73.jpg"
+    ]
+  },
+  {
+    "id": 4,
+    "nombre": "Alfarería Contemporánea",
+    "categoria": "alfareria",
+    "descripcion": "Crea objetos modernos combinando barro y pintura artística.",
+    "ubicacion": "Arica",
+    "precio": 35000,
+    "imagenes": [
+      "https://chileestuyo.cl/wp-content/uploads/2020/03/Morro-de-Arica.jpg",
+      "https://i.pinimg.com/1200x/e2/d1/9c/e2d19ccbf748b29172378b423f1982ad.jpg",
+      "https://cdn.fixando.com/u_cl/h/531_teaser.jpg?x=1632611a2498d61b488468b4e174078c"
+    ]
+  },
+
+
+
+
+
+
+
+  {
+    "id": 5,
+    "nombre": "Cocina Fusión Andina",
+    "categoria": "cocina",
+    "descripcion": "Experimenta la mezcla de sabores tradicionales con técnicas modernas. Donde aprenderas platos tipicos como Calapurca, Chairo, Sango y Picante de guata",
+    "ubicacion": "Putre",
+    "precio": 28000,
+    "imagenes": [
+      "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/42/45/f4/das-essen-war-lecker.jpg?w=900&h=500&s=1",
+      "https://d2kkzshb6n9g86.cloudfront.net/wp-content/uploads/2021/07/recetas-chilenas-calapurca-1-768x500.jpg.webp",
+      "https://www.marcachile.cl/cocina-chilena/salsa-pebre-tradicional/"
+    ]
+  },
+  {
+    "id": 6,
+    "nombre": "Taller de Telar Artesanal",
+    "categoria": "tejido",
+    "descripcion": "Aprende a usar el telar para crear tapices y decoraciones únicas.",
+    "ubicacion": "Arica",
+    "precio": 22000,
+    "imagenes": [
+      "https://example.com/tejido4.jpg",
+      "https://example.com/tejido5.jpg",
+      "https://example.com/tejido6.jpg"
+    ]
+  },
+  {
+    "id": 7,
+    "nombre": "Alfarería para Niños",
+    "categoria": "alfareria",
+    "descripcion": "Actividad divertida y educativa para que los niños aprendan alfarería.",
+    "ubicacion": "Arica",
+    "precio": 18000,
+    "imagenes": [
+      "https://example.com/alfareria7.jpg",
+      "https://example.com/alfareria8.jpg",
+      "https://example.com/alfareria9.jpg"
+    ]
+  },
+  {
+    "id": 8,
+    "nombre": "Clases de Cocina Local",
+    "categoria": "cocina",
+    "descripcion": "Prepara platos tradicionales y aprende sobre ingredientes locales.",
+    "ubicacion": "Codpa",
+    "precio": 24000,
+    "imagenes": [
+      "https://example.com/cocina7.jpg",
+      "https://example.com/cocina8.jpg",
+      "https://example.com/cocina9.jpg"
+    ]
+  },
+  {
+    "id": 9,
+    "nombre": "Tejido de Accesorios",
+    "categoria": "tejido",
+    "descripcion": "Crea bufandas, gorros y otros accesorios tejidos con técnicas locales.",
+    "ubicacion": "Arica",
+    "precio": 21000,
+    "imagenes": [
+      "https://example.com/tejido7.jpg",
+      "https://example.com/tejido8.jpg",
+      "https://example.com/tejido9.jpg"
+    ]
+  },
+  {
+    "id": 10,
+    "nombre": "Alfarería Avanzada",
+    "categoria": "alfareria",
+    "descripcion": "Perfecciona tus técnicas y aprende acabados profesionales.",
+    "ubicacion": "Putre",
+    "precio": 40000,
+    "imagenes": [
+      "https://example.com/alfareria10.jpg",
+      "https://example.com/alfareria11.jpg",
+      "https://example.com/alfareria12.jpg"
+    ]
+  },
+  {
+    "id": 11,
+    "nombre": "Cocina de Postres Tradicionales",
+    "categoria": "cocina",
+    "descripcion": "Aprende a preparar dulces típicos de la zona norte de Chile.",
+    "ubicacion": "Arica",
+    "precio": 23000,
+    "imagenes": [
+      "https://example.com/cocina10.jpg",
+      "https://example.com/cocina11.jpg",
+      "https://example.com/cocina12.jpg"
+    ]
+  },
+  {
+    "id": 12,
+    "nombre": "Taller de Tejido Decorativo",
+    "categoria": "tejido",
+    "descripcion": "Aprende técnicas de tejido para crear decoración para tu hogar.",
+    "ubicacion": "Codpa",
+    "precio": 20000,
+    "imagenes": [
+      "https://example.com/tejido10.jpg",
+      "https://example.com/tejido11.jpg",
+      "https://example.com/tejido12.jpg"
+    ]
+  }
+]

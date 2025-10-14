@@ -1,0 +1,79 @@
+.pag-inicio {
+  background-color: #FFFDF1; /* color de identidad de marca */
+  min-height: 100vh;          /* ocupa 100% del alto de la pantalla */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hero / buscador */
+.hero-content {
+  background-image: url('../assets/fondoHome.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 100%;
+  height: 80vh;               /* ocupa la mayor parte de la pantalla */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  padding: 0 1rem;            /* para mobile */
+}
+
+/* Buscador */
+.search-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.search-input,
+.search-bar select,
+.search-bar button {
+    background-color: rgba(248, 248, 248, 0.5);
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+}
+
+.search-input {
+    color: rgb(37, 37, 37);
+}
+
+.search-bar button {
+  background-color: #D94F70;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100px;
+  height: 50px;
+  align-self: center;
+}
+
+.search-bar button:hover {
+  background-color: #9e2b46;
+}
+
+/* Recomendaciones */
+.titulo-recomendaciones {
+  margin-top: 2rem;
+  font-size: 1.5rem;
+  text-align: center;
+  color: #333;
+}
+
+/* Ajuste responsive */
+@media (max-width: 768px) {
+  .hero-content {
+    height: 70vh;
+  }
+
+  .search-bar {
+    max-width: 90%;
+  }
+}
