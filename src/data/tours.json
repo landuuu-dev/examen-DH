@@ -52,12 +52,6 @@
     ]
   },
 
-
-
-
-
-
-
   {
     "id": 5,
     "nombre": "Cocina Fusión Andina",
@@ -79,87 +73,8 @@
     "ubicacion": "Arica",
     "precio": 22000,
     "imagenes": [
-      "https://example.com/tejido4.jpg",
-      "https://example.com/tejido5.jpg",
-      "https://example.com/tejido6.jpg"
-    ]
-  },
-  {
-    "id": 7,
-    "nombre": "Alfarería para Niños",
-    "categoria": "alfareria",
-    "descripcion": "Actividad divertida y educativa para que los niños aprendan alfarería.",
-    "ubicacion": "Arica",
-    "precio": 18000,
-    "imagenes": [
-      "https://example.com/alfareria7.jpg",
-      "https://example.com/alfareria8.jpg",
-      "https://example.com/alfareria9.jpg"
-    ]
-  },
-  {
-    "id": 8,
-    "nombre": "Clases de Cocina Local",
-    "categoria": "cocina",
-    "descripcion": "Prepara platos tradicionales y aprende sobre ingredientes locales.",
-    "ubicacion": "Codpa",
-    "precio": 24000,
-    "imagenes": [
-      "https://example.com/cocina7.jpg",
-      "https://example.com/cocina8.jpg",
-      "https://example.com/cocina9.jpg"
-    ]
-  },
-  {
-    "id": 9,
-    "nombre": "Tejido de Accesorios",
-    "categoria": "tejido",
-    "descripcion": "Crea bufandas, gorros y otros accesorios tejidos con técnicas locales.",
-    "ubicacion": "Arica",
-    "precio": 21000,
-    "imagenes": [
-      "https://example.com/tejido7.jpg",
-      "https://example.com/tejido8.jpg",
-      "https://example.com/tejido9.jpg"
-    ]
-  },
-  {
-    "id": 10,
-    "nombre": "Alfarería Avanzada",
-    "categoria": "alfareria",
-    "descripcion": "Perfecciona tus técnicas y aprende acabados profesionales.",
-    "ubicacion": "Putre",
-    "precio": 40000,
-    "imagenes": [
-      "https://example.com/alfareria10.jpg",
-      "https://example.com/alfareria11.jpg",
-      "https://example.com/alfareria12.jpg"
-    ]
-  },
-  {
-    "id": 11,
-    "nombre": "Cocina de Postres Tradicionales",
-    "categoria": "cocina",
-    "descripcion": "Aprende a preparar dulces típicos de la zona norte de Chile.",
-    "ubicacion": "Arica",
-    "precio": 23000,
-    "imagenes": [
-      "https://example.com/cocina10.jpg",
-      "https://example.com/cocina11.jpg",
-      "https://example.com/cocina12.jpg"
-    ]
-  },
-  {
-    "id": 12,
-    "nombre": "Taller de Tejido Decorativo",
-    "categoria": "tejido",
-    "descripcion": "Aprende técnicas de tejido para crear decoración para tu hogar.",
-    "ubicacion": "Codpa",
-    "precio": 20000,
-    "imagenes": [
-      "https://example.com/tejido10.jpg",
-      "https://example.com/tejido11.jpg",
-      "https://example.com/tejido12.jpg"
+      "https://extensionduoc.s3.us-west-2.amazonaws.com/wp-content/uploads/2021/10/06180638/Previsualizaciones-7.jpg",
+      "https://humanidadesyarte.udec.cl/wp-content/uploads/2024/09/%C2%A1Participa-en-el-taller-de-telar-decorativo-en-Edhuarte-UdeC-640x360.jpg"
     ]
   }
 ]
