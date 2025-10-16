@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import IniciarSesion from "./pages/IniciarSesion";
 import Registrarse from "./pages/Registrarse";
 import Footer from "./componentesEstaticos/Footer";
+import PanelAdmin from "./pages/PanelAdmin";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/" element={<Home />} /> {/* Home solo en / */}
         <Route path="/iniciar-sesion" element={<IniciarSesion />} />
         <Route path="/registrarse" element={<Registrarse />} />
+        <Route path="/panel-admin" element={<PanelAdmin/>} />
       </Routes>
       <Footer />
     </>
