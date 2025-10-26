@@ -1,0 +1,65 @@
+/* Contenedor principal */
+.header-admin-container {
+  padding: 24px;
+  background-color: #f9fafb; /* gris claro */
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Contenedor de botones */
+.header-admin-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* Botones */
+.header-admin-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db; /* gris borde */
+  background-color: white;
+  color: #374151; /* texto gris oscuro */
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.header-admin-button:hover {
+  background-color: #f3f4f6; /* gris hover */
+}
+
+/* Botón activo */
+.header-admin-button.active {
+  background-color: #2563eb; /* azul */
+  color: white;
+  border-color: #2563eb;
+}
+
+/* Contenedor del componente activo */
+.header-admin-content {
+  border: 1px solid #d1d5db; /* gris */
+  padding: 16px;
+  border-radius: 6px;
+  background-color: white;
+  min-height: 200px;
+}
+
+/* Contenedor del botón cerrar */
+.cerrar-container {
+  margin-top: 16px;
+}
+
+/* Botón cerrar */
+.cerrar-button {
+  padding: 6px 12px;
+  background-color: #ef4444; /* rojo */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cerrar-button:hover {
+  background-color: #dc2626; /* rojo más oscuro */
+}
