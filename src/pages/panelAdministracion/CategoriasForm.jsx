@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
+import axios from 'axios';
 
 function CategoriasForm() {
   const [values, setValues] = useState({
@@ -6,29 +7,28 @@ function CategoriasForm() {
     descripcion: "",
     imagen1: null, // obligatoria
     imagen2: null,
-    imagen3: null
+    imagen3: null,
   });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setValues(prev => ({
+    setValues((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleFileChange = (e) => {
     const { name, files } = e.target;
-    setValues(prev => ({
+    setValues((prev) => ({
       ...prev,
-      [name]: files[0] || null
+      [name]: files[0] || null,
     }));
   };
 
   const handleForm = async (event) => {
     event.preventDefault();
 
-    // Validación: nombre, descripcion y primera imagen obligatoria
     if (!values.nombre || !values.descripcion || !values.imagen1) {
       alert("Nombre, descripción y la primera imagen son obligatorios.");
       return;
@@ -42,19 +42,26 @@ function CategoriasForm() {
     if (values.imagen3) formData.append("imagen3", values.imagen3);
 
     try {
-      const response = await fetch("http://localhost:8080/categorias", {
-        method: "POST",
-        body: formData,
+      const { data } = await axios.post("http://localhost:8080/categorias", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
-      if (!response.ok) throw new Error("Error al crear la categoría");
+      alert("✅ Categoría creada correctamente!");
+      console.log("Nueva categoría:", data);
 
-      const data = await response.json();
-      alert("Categoría creada correctamente!");
-      setValues({ nombre: "", descripcion: "", imagen1: null, imagen2: null, imagen3: null });
+      // Reiniciar el formulario
+      setValues({
+        nombre: "",
+        descripcion: "",
+        imagen1: null,
+        imagen2: null,
+        imagen3: null,
+      });
     } catch (error) {
-      console.error(error);
-      alert("No se pudo crear la categoría");
+      console.error("Error al crear la categoría:", error);
+      alert("❌ No se pudo crear la categoría. Revisa la consola para más detalles.");
     }
   };
 
@@ -63,7 +70,6 @@ function CategoriasForm() {
       <h1 className="text-2xl font-bold mb-6 text-center">Creación de Categorías</h1>
 
       <form onSubmit={handleForm} className="flex flex-col gap-4">
-
         <input
           type="text"
           name="nombre"
@@ -81,8 +87,8 @@ function CategoriasForm() {
           onChange={handleInputChange}
           className="border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
-        <small className="text-gray-500">Imagen principal (obligatoria)</small>
 
+        <small className="text-gray-500">Imagen principal (obligatoria)</small>
         <input
           type="file"
           name="imagen1"
@@ -90,8 +96,8 @@ function CategoriasForm() {
           onChange={handleFileChange}
           className="border border-gray-300 rounded-md p-2 cursor-pointer"
         />
-        <small className="text-gray-500">Imagen secundaria (opcional)</small>
 
+        <small className="text-gray-500">Imagen secundaria (opcional)</small>
         <input
           type="file"
           name="imagen2"
@@ -99,8 +105,8 @@ function CategoriasForm() {
           onChange={handleFileChange}
           className="border border-gray-300 rounded-md p-2 cursor-pointer"
         />
-        <small className="text-gray-500">Imagen terciaria (opcional)</small>
 
+        <small className="text-gray-500">Imagen terciaria (opcional)</small>
         <input
           type="file"
           name="imagen3"
