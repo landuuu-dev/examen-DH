@@ -1,9 +1,9 @@
 import React, { useState } from 'react'; 
 import '../adminEstilos.css'; 
 import TourForm from '../TourForm';
-import ProductosTable from '../ProductosTable';
 import CategoriasForm from './CategoriasForm';
 import ListaCategorias from './ListaCategorias';
+import CardTour from '../CardTour';
 
 function HeaderAdmin() {
 
@@ -15,7 +15,7 @@ function HeaderAdmin() {
 
   const componentsMap = {
     'Crear tour': <TourForm />,
-    'Lista Tour': <ProductosTable />,
+    'Lista Tour': <CardTour />,
     'Categoria': <CategoriasForm />,
     'Lista categorias': <ListaCategorias />
   };

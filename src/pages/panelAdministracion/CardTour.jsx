@@ -1,9 +1,9 @@
 import React from 'react'
 
-function ProductosTable() {
+function CardTour() {
   return (
-    <div>ProductosTable</div>
+    <div>Card Tour</div>
   )
 }
 
-export default ProductosTable
+export default CardTour;
