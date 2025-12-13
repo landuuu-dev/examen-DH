@@ -3,7 +3,7 @@ import '../adminEstilos.css';
 import TourForm from '../TourForm';
 import CategoriasForm from './CategoriasForm';
 import ListaCategorias from './ListaCategorias';
-import CardTour from '../CardTour';
+import ListaTours from '../ListaTours';
 
 function HeaderAdmin() {
 
@@ -15,7 +15,7 @@ function HeaderAdmin() {
 
   const componentsMap = {
     'Crear tour': <TourForm />,
-    'Lista Tour': <CardTour />,
+    'Lista Tour': <ListaTours />,
     'Categoria': <CategoriasForm />,
     'Lista categorias': <ListaCategorias />
   };
