@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import ImageUploader from './ImagenUploader';
 
 function CategoriasForm() {
+
   const [values, setValues] = useState({
     nombre: "",
     descripcion: "",
-    imagen1: null, // obligatoria
+    imagen1: null,
     imagen2: null,
     imagen3: null,
   });
@@ -38,20 +40,25 @@ function CategoriasForm() {
     formData.append("nombre", values.nombre);
     formData.append("descripcion", values.descripcion);
     formData.append("imagen1", values.imagen1);
+
     if (values.imagen2) formData.append("imagen2", values.imagen2);
     if (values.imagen3) formData.append("imagen3", values.imagen3);
 
     try {
-      const { data } = await axios.post("http://localhost:8080/categorias", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const { data } = await axios.post(
+        "https://backend-examen-dh.onrender.com/categorias",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       alert("✅ Categoría creada correctamente!");
       console.log("Nueva categoría:", data);
 
-      // Reiniciar el formulario
+      // Reiniciar formulario
       setValues({
         nombre: "",
         descripcion: "",
@@ -59,24 +66,27 @@ function CategoriasForm() {
         imagen2: null,
         imagen3: null,
       });
+
     } catch (error) {
       console.error("Error al crear la categoría:", error);
-      alert("❌ No se pudo crear la categoría. Revisa la consola para más detalles.");
+      alert("❌ No se pudo crear la categoría.");
     }
   };
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-lg">
+
       <h1 className="text-2xl font-bold mb-6 text-center">Creación de Categorías</h1>
 
       <form onSubmit={handleForm} className="flex flex-col gap-4">
+
         <input
           type="text"
           name="nombre"
           placeholder="Nombre de la categoría"
           value={values.nombre}
           onChange={handleInputChange}
-          className="border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border border-gray-300 rounded-md p-3"
         />
 
         <input
@@ -85,39 +95,21 @@ function CategoriasForm() {
           placeholder="Descripción"
           value={values.descripcion}
           onChange={handleInputChange}
-          className="border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="border border-gray-300 rounded-md p-3"
         />
 
         <small className="text-gray-500">Imagen principal (obligatoria)</small>
-        <input
-          type="file"
-          name="imagen1"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="border border-gray-300 rounded-md p-2 cursor-pointer"
-        />
+        <ImageUploader name="imagen1" handleFileChange={handleFileChange} />
 
         <small className="text-gray-500">Imagen secundaria (opcional)</small>
-        <input
-          type="file"
-          name="imagen2"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="border border-gray-300 rounded-md p-2 cursor-pointer"
-        />
+        <ImageUploader name="imagen2" handleFileChange={handleFileChange} />
 
         <small className="text-gray-500">Imagen terciaria (opcional)</small>
-        <input
-          type="file"
-          name="imagen3"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="border border-gray-300 rounded-md p-2 cursor-pointer"
-        />
+        <ImageUploader name="imagen3" handleFileChange={handleFileChange} />
 
         <button
           type="submit"
-          className="bg-blue-500 text-white font-semibold py-3 rounded-md hover:bg-blue-600 transition-colors"
+          className="bg-blue-500 text-white font-semibold py-3 rounded-md"
         >
           Crear categoría
         </button>

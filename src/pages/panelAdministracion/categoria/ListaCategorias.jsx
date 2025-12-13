@@ -2,20 +2,23 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import CardCategorias from "./CardCategorias";
 
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
 function ListaCategorias() {
   const [categoriaData, setCategoriaData] = useState([]);
   const [categoriaEdit, setCategoriaEdit] = useState(null);
   const [newName, setNewName] = useState("");
   const [newDescripcion, setNewDescripcion] = useState("");
-  const [newImagenes, setNewImagenes] = useState({}); // { imagen1: File, imagen2: File, imagen3: File }
-  const BASE_URL = "http://localhost:8080/categorias";
+  const [newImagenes, setNewImagenes] = useState({});
+  const BASE_URL = "https://backend-examen-dh.onrender.com/categorias";
 
-  // Obtener categorías
+  // ======================
+  // OBTENER CATEGORÍAS
+  // ======================
   const fetchCategorias = async () => {
     try {
       const { data } = await axios.get(BASE_URL);
       setCategoriaData(data);
-      console.log("Respuesta del backend:", data);
     } catch (error) {
       console.error("Error al obtener categorías:", error);
     }
@@ -25,57 +28,82 @@ function ListaCategorias() {
     fetchCategorias();
   }, []);
 
-  // Eliminar categoría
+  // ======================
+  // ELIMINAR
+  // ======================
   const handleDelete = async (id) => {
     try {
-      const resultado = confirm("¿Estás seguro de eliminar esta categoría?");
-      if (resultado) {
-        await axios.delete(`${BASE_URL}/${id}`);
-        setCategoriaData((prev) => prev.filter((cat) => cat.id !== id));
-        alert("Categoría eliminada correctamente");
-      } else {
-        alert("Se ha cancelado el proceso de eliminacion")
-      }
-      
+      if (!confirm("¿Estás seguro de eliminar esta categoría?")) return;
+
+      await axios.delete(`${BASE_URL}/${id}`);
+      setCategoriaData((prev) => prev.filter((cat) => cat.id !== id));
+      alert("Categoría eliminada correctamente");
     } catch (error) {
       console.error("Error eliminando categoría:", error);
       alert("No se pudo eliminar la categoría");
     }
   };
 
-  // Abrir modal de edición
+  // ======================
+  // EDITAR
+  // ======================
   const handleEdit = (categoria) => {
     setCategoriaEdit(categoria);
     setNewName(categoria.nombre);
-    setNewDescripcion(categoria.descripcion);
+    setNewDescripcion(categoria.descripcion || "");
     setNewImagenes({});
   };
 
-  // Cambiar archivos en modal
+  // ======================
+  // VALIDAR IMÁGENES
+  // ======================
   const handleFileChange = (e, imagenNum) => {
-    const file = e.target.files[0] || null;
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Solo se permiten imágenes");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      alert("La imagen no puede superar los 5 MB");
+      e.target.value = "";
+      return;
+    }
+
     setNewImagenes((prev) => ({
       ...prev,
       [`imagen${imagenNum}`]: file,
     }));
   };
 
-  // Guardar cambios
+  // ======================
+  // GUARDAR CAMBIOS (PATCH)
+  // ======================
   const handleUpdate = async () => {
     try {
-      const formData = new FormData();
-      formData.append("nombre", newName);
-      formData.append("descripcion", newDescripcion);
+      if (
+        newName === categoriaEdit.nombre &&
+        newDescripcion === categoriaEdit.descripcion &&
+        Object.keys(newImagenes).length === 0
+      ) {
+        alert("No hay cambios para guardar");
+        return;
+      }
 
-      // Adjuntar solo las imágenes nuevas
+      const formData = new FormData();
+      if (newName) formData.append("nombre", newName);
+      if (newDescripcion) formData.append("descripcion", newDescripcion);
+
       Object.entries(newImagenes).forEach(([key, file]) => {
         if (file) formData.append(key, file);
       });
 
-      const { data } = await axios.put(
+      const { data } = await axios.patch(
         `${BASE_URL}/${categoriaEdit.id}`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        formData
       );
 
       setCategoriaData((prev) =>
@@ -90,12 +118,13 @@ function ListaCategorias() {
     }
   };
 
-  // Cerrar modal
+  // ======================
+  // CERRAR MODAL
+  // ======================
   const closeModal = () => setCategoriaEdit(null);
 
   return (
     <div className="p-4 relative">
-      {/* Lista de categorías */}
       <div className="grid grid-cols-3 gap-4">
         {categoriaData.length === 0 ? (
           <p>No hay categorías disponibles.</p>
@@ -111,10 +140,9 @@ function ListaCategorias() {
         )}
       </div>
 
-      {/* Modal flotante */}
       {categoriaEdit && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96 shadow-lg animate-fadeIn">
+          <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
             <h3 className="text-lg font-semibold mb-3 text-center">
               Editar Categoría
             </h3>
@@ -124,7 +152,7 @@ function ListaCategorias() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               className="border p-2 rounded w-full mb-2"
-              placeholder="Nuevo nombre"
+              placeholder="Nombre"
             />
 
             <input
@@ -132,10 +160,10 @@ function ListaCategorias() {
               value={newDescripcion}
               onChange={(e) => setNewDescripcion(e.target.value)}
               className="border p-2 rounded w-full mb-2"
-              placeholder="Nueva descripción"
+              placeholder="Descripción"
             />
 
-            <small className="text-gray-500">Cambiar imagen principal</small>
+            <small>Cambiar imagen principal</small>
             <input
               type="file"
               accept="image/*"
@@ -143,7 +171,7 @@ function ListaCategorias() {
               className="border p-2 rounded w-full mb-2"
             />
 
-            <small className="text-gray-500">Cambiar imagen secundaria</small>
+            <small>Cambiar imagen secundaria</small>
             <input
               type="file"
               accept="image/*"
@@ -151,7 +179,7 @@ function ListaCategorias() {
               className="border p-2 rounded w-full mb-2"
             />
 
-            <small className="text-gray-500">Cambiar imagen terciaria</small>
+            <small>Cambiar imagen terciaria</small>
             <input
               type="file"
               accept="image/*"
@@ -162,13 +190,13 @@ function ListaCategorias() {
             <div className="flex justify-end gap-2">
               <button
                 onClick={handleUpdate}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
+                className="bg-green-600 text-white px-4 py-2 rounded"
               >
                 Guardar
               </button>
               <button
                 onClick={closeModal}
-                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition"
+                className="bg-gray-400 text-white px-4 py-2 rounded"
               >
                 Cancelar
               </button>

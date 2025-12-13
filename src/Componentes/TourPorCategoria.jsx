@@ -7,7 +7,7 @@ function ToursPorCategoria() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`http://localhost:8080/tours/categoria/${id}`)
+     fetch(`https://backend-examen-dh.onrender.com/tours/categoria/${id}`)
       .then((res) => res.json())
       .then((data) => {
         setTours(data);

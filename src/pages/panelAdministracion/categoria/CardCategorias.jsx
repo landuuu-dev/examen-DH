@@ -9,12 +9,12 @@ function CardCategorias({ categoriaData, onDelete, onEdit }) {
   return (
     <div className='bg-white rounded-lg p-4 shadow-md'>
       {categoriaData.imagen1 && (
-          <img
-            src={`http://localhost:8080${categoriaData.imagen1}`}
-            alt={`Imagen de ${categoriaData.nombre}`}
-            className='w-full h-48 object-cover rounded-md'
-          />
-        )}
+        <img
+          src={categoriaData.imagen1}          // ← CORREGIDO
+          alt={`Imagen de ${categoriaData.nombre}`}
+          className='w-full h-48 object-cover rounded-md'
+        />
+      )}
 
       <div className='mt-2'>
         <p className='text-xs text-gray-600 line-clamp-3'>Id: {categoriaData.id}</p>
@@ -24,21 +24,21 @@ function CardCategorias({ categoriaData, onDelete, onEdit }) {
 
       <div className="flex mt-2">
 
-      <button
-        onClick={() => onEdit(categoriaData)}
-        className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 mr-2"
-      >
-        Editar
-      </button>
+        <button
+          onClick={() => onEdit(categoriaData)}
+          className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 mr-2"
+        >
+          Editar
+        </button>
 
-      <button
-        onClick={() => onDelete(categoriaData.id)}
-        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-      >
-        Eliminar
-      </button>
-    </div>
+        <button
+          onClick={() => onDelete(categoriaData.id)}
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        >
+          Eliminar
+        </button>
 
+      </div>
     </div>
   );
 }

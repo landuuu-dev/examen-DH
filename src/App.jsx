@@ -7,8 +7,8 @@ import IniciarSesion from "./pages/IniciarSesion";
 import Registrarse from "./pages/Registrarse";
 
 import PanelAdmin from "./pages/panelAdministracion/PanelAdmin";
-import ListaCategorias from "./pages/panelAdministracion/ListaCategorias";
-import CategoriaForm from "./pages/panelAdministracion/CategoriasForm";
+import ListaCategorias from "./pages/panelAdministracion/categoria/ListaCategorias";
+import CategoriaForm from "./pages/panelAdministracion/categoria/CategoriasForm";
 import ToursPorCategoria from "./Componentes/TourPorCategoria"; // asegúrate que la ruta esté bien
 
 function App() {

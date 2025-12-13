@@ -3,7 +3,7 @@ import axios from "axios";
 
 function CrearCategoria({ onCategoriaCreada }) {
   const [nombre, setNombre] = useState("");
-  const API_URL = "http://localhost:8080/categorias";
+  const API_URL = "https://backend-examen-dh.onrender.com/categorias";
 
   // 🔹 Crear nueva categoría
   const crearCategoria = async () => {

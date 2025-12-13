@@ -7,7 +7,7 @@ function Categorias() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:8080/categorias")
+    fetch("https://backend-examen-dh.onrender.com/categorias")
       .then((res) => res.json())
       .then((data) => {
         setCategorias(data);

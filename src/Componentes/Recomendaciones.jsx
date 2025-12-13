@@ -8,7 +8,7 @@ function Recomendaciones() {
   const [tourSeleccionado, setTourSeleccionado] = useState(null);
   const [verTodasImagenes, setVerTodasImagenes] = useState(false);
 
-  const BACKEND_URL = "http://localhost:8080";
+  const BACKEND_URL = "https://backend-examen-dh.onrender.com/tours";
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/tours`)

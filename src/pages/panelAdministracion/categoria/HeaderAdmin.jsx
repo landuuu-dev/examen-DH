@@ -1,7 +1,7 @@
 import React, { useState } from 'react'; 
-import './adminEstilos.css'; 
-import TourForm from './TourForm';
-import ProductosTable from './ProductosTable';
+import '../adminEstilos.css'; 
+import TourForm from '../TourForm';
+import ProductosTable from '../ProductosTable';
 import CategoriasForm from './CategoriasForm';
 import ListaCategorias from './ListaCategorias';
 

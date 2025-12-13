@@ -1,12 +1,12 @@
 import React from "react";
 
-function ImageUploader({ handleFileChange }) {
+function ImageUploader({ name, handleFileChange }) {
   return (
     <input
       type="file"
-      multiple
+      name={name}
       accept="image/*"
-      className="border p-2 rounded w-full mt-4"
+      className="border p-2 rounded w-full mt-2"
       onChange={handleFileChange}
     />
   );
