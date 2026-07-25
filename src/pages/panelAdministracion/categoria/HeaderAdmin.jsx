@@ -1,98 +1,47 @@
-import React, { useState } from 'react'; 
-import '../adminEstilos.css'; 
-import TourForm from '../TourForm';
-import CategoriasForm from './CategoriasForm';
-import ListaCategorias from './ListaCategorias';
-import ListaTours from '../ListaTours';
+import React, { useState } from "react";
+import TourForm from "../TourForm";
+import CategoriasForm from "./CategoriasForm";
+import ListaCategorias from "./ListaCategorias";
+import ListaTours from "../ListaTours";
 
 function HeaderAdmin() {
-
-  const [activeComponent, setActiveComponent] = useState('Crear tour');
-  // Creamos una variable de estado llamada activeComponent
-  // Contendrá el nombre del componente que queremos mostrar actualmente
-  // Inicializamos con "Crear tour" para que al cargar la página se muestre TourForm
-  // setActiveComponent es la función que usamos para cambiar el estado
+  const [activeComponent, setActiveComponent] = useState("Crear tour");
 
   const componentsMap = {
-    'Crear tour': <TourForm />,
-    'Lista Tour': <ListaTours />,
-    'Categoria': <CategoriasForm />,
-    'Lista categorias': <ListaCategorias />
+    "Crear tour": <TourForm />,
+    "Lista Tours": <ListaTours />,
+    "Crear Categoría": <CategoriasForm />,
+    "Lista Categorías": <ListaCategorias />,
   };
-  // Creamos un objeto que mapea el nombre de cada botón con el componente correspondiente
-  // La clave (ej: "Crear tour") es lo que aparecerá en el botón
-  // El valor (ej: <TourForm />) es el componente que se renderiza cuando ese botón está activo
 
   return (
-    <div className="header-admin-container">
-      {/* Contenedor principal con padding, fondo gris, bordes redondeados y sombra */}
-
-      <div className="header-admin-buttons">
-        {Object.keys(componentsMap).map((label) => (
-          // Object.keys(componentsMap) devuelve un array con las claves del objeto: 
-          // ["Crear tour", "Lista Tour", "Categoria", "Lista categorias"]
-          // .map recorre cada elemento de ese array y devuelve un botón por cada clave
-
-          <button
-            key={label} 
-            // React necesita un key único para cada elemento de la lista 
-            // Esto ayuda a optimizar el renderizado y actualización de la UI
-
-            onClick={() => setActiveComponent(label)}
-            // Al hacer clic en el botón, cambiamos el estado activeComponent al nombre del botón
-            // Esto hace que se muestre el componente correspondiente en el contenedor de abajo
-
-            className={`header-admin-button ${activeComponent === label ? 'active' : ''}`}
-            // Si el botón corresponde al componente activo, se le agrega la clase 'active'
-            // Esto permite que cambie de estilo (color de fondo, texto blanco, etc.)
-          >
-            {label}
-            {/* Mostramos el texto del botón */}
-          </button>
-        ))}
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+      {/* Navegación por Pestañas */}
+      <div className="bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80 flex flex-wrap gap-1 shadow-inner">
+        {Object.keys(componentsMap).map((label) => {
+          const isActive = activeComponent === label;
+          return (
+            <button
+              key={label}
+              onClick={() => setActiveComponent(label)}
+              className={`flex-1 min-w-[140px] py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer text-center ${
+                isActive
+                  ? "bg-white text-indigo-600 shadow-sm border border-slate-200/60"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
-    {/* Contenedor donde se mostrará el componente activo */}
-      <div className="header-admin-content">
-
-        {activeComponent && (
-          // Solo renderizamos algo si activeComponent NO es null
-          <>
-            {componentsMap[activeComponent]}
-            {/* Mostramos el componente correspondiente según el estado */}
-
-            <div className="cerrar-container">
-              {/* Contenedor para el botón "Cerrar" debajo del componente */}
-
-              <button
-                onClick={() => setActiveComponent(null)}
-                // Al hacer clic, ponemos activeComponent en null
-                // Esto oculta el componente activo
-                className="cerrar-button"
-              >
-                Cerrar
-                {/* Texto del botón */}
-              </button>
-            </div>
-          </>
-        )}
+      {/* Área del Contenido Activo */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 md:p-6 transition-all">
+        {componentsMap[activeComponent]}
       </div>
     </div>
   );
 }
 
 export default HeaderAdmin;
-// Exportamos el componente para poder usarlo en PanelAdmin u otros archivos
-
-/* 
-Este componente HeaderAdmin funciona como un panel de administración con “pestañas” para mostrar diferentes componentes. 
-
-1. `activeComponent` es un estado que guarda el nombre del componente que debe mostrarse actualmente. Inicialmente es 'Crear tour', por lo que al cargar la página se muestra TourForm.
-2. `componentsMap` es un objeto que mapea los nombres de los botones a los componentes JSX correspondientes. Por ejemplo, 'Lista Tour' apunta a <ProductosTable />.
-3. La sección de botones recorre las claves del objeto con `Object.keys(componentsMap).map()`, generando un botón para cada opción. Al hacer clic en un botón, se actualiza `activeComponent` con ese nombre, lo que hace que el componente correspondiente se renderice.
-4. La sección de contenido usa un short-circuit (`activeComponent && (...)`) para mostrar solo si hay un componente activo. Dentro se renderiza:
-   - `{componentsMap[activeComponent]}`: React busca la clave en el objeto y renderiza el componente correspondiente.
-   - El botón "Cerrar", que al hacer clic pone `activeComponent` en null, ocultando todo el bloque.
-5. Todo el bloque de contenido y el botón "Cerrar" se renderizan juntos; si `activeComponent` es null, nada se muestra.
-En resumen, este componente permite cambiar dinámicamente qué subcomponente se ve, manteniendo un solo estado para controlarlo y un botón para ocultarlo.
-*/
