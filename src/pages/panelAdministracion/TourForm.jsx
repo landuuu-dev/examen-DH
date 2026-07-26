@@ -1,20 +1,52 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 function TourForm({ onTourCreado }) {
   const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [precio, setPrecio] = useState("");
   const [ubicacion, setUbicacion] = useState("");
+  const [categoriaId, setCategoriaId] = useState("");
+
+  // Nuevos campos obligatorios requeridos por la API
+  const [fechaInicio, setFechaInicio] = useState("");
+  const [fechaFin, setFechaFin] = useState("");
+  const [cuposTotales, setCuposTotales] = useState("10");
+  const [estado, setEstado] = useState("ACTIVO");
+
+  const [categorias, setCategorias] = useState([]);
   const [imagenes, setImagenes] = useState(null);
 
+  const [loadingCategorias, setLoadingCategorias] = useState(true);
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState(null);
   const [error, setError] = useState(null);
 
   const BACKEND_URL = "https://backend-examen-dh.onrender.com";
 
+  useEffect(() => {
+    fetch(`${BACKEND_URL}/categorias`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al obtener categorías");
+        return res.json();
+      })
+      .then((data) => {
+        setCategorias(data);
+        setLoadingCategorias(false);
+      })
+      .catch((err) => {
+        console.error("Error al cargar categorías:", err);
+        setLoadingCategorias(false);
+      });
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!categoriaId) {
+      setError("Debes seleccionar una categoría obligatoriamente.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setMensaje(null);
@@ -23,12 +55,25 @@ function TourForm({ onTourCreado }) {
       const token = localStorage.getItem("token");
       const formData = new FormData();
 
+      // Convertir el precio a número entero (int) para evitar 'Failed to convert property value'
+      const precioInt = Math.round(parseFloat(precio));
+
       formData.append("nombre", nombre);
       formData.append("descripcion", descripcion);
-      formData.append("precio", precio);
+      formData.append("precio", precioInt);
       formData.append("ubicacion", ubicacion);
 
-      // Adjuntar archivos de imagen si existen
+      // Relación con categoría
+      formData.append("categoriaId", categoriaId);
+      formData.append("categoria.id", categoriaId);
+
+      // Campos requeridos por Spring Boot
+      formData.append("fechaInicio", fechaInicio);
+      formData.append("fechaFin", fechaFin);
+      formData.append("cuposTotales", parseInt(cuposTotales, 10));
+      formData.append("estado", estado);
+
+      // Adjuntar archivos de imagen
       if (imagenes && imagenes.length > 0) {
         Array.from(imagenes).forEach((file) => {
           formData.append("imagenes", file);
@@ -55,12 +100,15 @@ function TourForm({ onTourCreado }) {
       setDescripcion("");
       setPrecio("");
       setUbicacion("");
+      setCategoriaId("");
+      setFechaInicio("");
+      setFechaFin("");
+      setCuposTotales("10");
+      setEstado("ACTIVO");
       setImagenes(null);
 
-      // Limpiar input de archivo
       e.target.reset();
 
-      // Notificar al componente padre si se requiere recargar listas
       if (onTourCreado) onTourCreado();
     } catch (err) {
       setError(err.message || "Ocurrió un error al procesar la solicitud");
@@ -72,36 +120,33 @@ function TourForm({ onTourCreado }) {
   return (
     <div className="w-full max-w-2xl mx-auto p-4 md:p-6">
       <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
-        {/* Encabezado del Formulario */}
         <div className="mb-6 border-b border-slate-100 pb-4">
           <h2 className="text-2xl font-bold text-slate-900 mb-1">
             Creación de Tour
           </h2>
           <p className="text-slate-500 text-sm">
-            Ingresa los detalles del nuevo paquete o destino turístico.
+            Ingresa los detalles completos del paquete turístico.
           </p>
         </div>
 
-        {/* Notificación de Éxito */}
         {mensaje && (
           <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm flex items-center justify-between">
             <span className="font-medium">{mensaje}</span>
             <button
               onClick={() => setMensaje(null)}
-              className="text-emerald-700 hover:text-emerald-900 font-bold ml-2"
+              className="text-emerald-700 hover:text-emerald-900 font-bold ml-2 cursor-pointer"
             >
               ✕
             </button>
           </div>
         )}
 
-        {/* Notificación de Error */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center justify-between">
             <span className="font-medium">{error}</span>
             <button
               onClick={() => setError(null)}
-              className="text-red-700 hover:text-red-900 font-bold ml-2"
+              className="text-red-700 hover:text-red-900 font-bold ml-2 cursor-pointer"
             >
               ✕
             </button>
@@ -109,13 +154,13 @@ function TourForm({ onTourCreado }) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Nombre del Tour */}
+          {/* Nombre */}
           <div>
             <label
               htmlFor="nombre"
               className="block text-sm font-semibold text-slate-700 mb-1.5"
             >
-              Nombre del Tour
+              Nombre del Tour <span className="text-red-500">*</span>
             </label>
             <input
               id="nombre"
@@ -124,8 +169,36 @@ function TourForm({ onTourCreado }) {
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Ej: Tour Machu Picchu Express"
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition duration-200"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
             />
+          </div>
+
+          {/* Categoría */}
+          <div>
+            <label
+              htmlFor="categoria"
+              className="block text-sm font-semibold text-slate-700 mb-1.5"
+            >
+              Categoría <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="categoria"
+              required
+              value={categoriaId}
+              onChange={(e) => setCategoriaId(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition cursor-pointer capitalize"
+            >
+              <option value="" disabled>
+                {loadingCategorias
+                  ? "Cargando categorías..."
+                  : "Selecciona una categoría"}
+              </option>
+              {categorias.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.nombre}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Descripción */}
@@ -134,16 +207,16 @@ function TourForm({ onTourCreado }) {
               htmlFor="descripcion"
               className="block text-sm font-semibold text-slate-700 mb-1.5"
             >
-              Descripción
+              Descripción <span className="text-red-500">*</span>
             </label>
             <textarea
               id="descripcion"
-              rows="4"
+              rows="3"
               required
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Describe las actividades, itinerario e inclusiones del tour..."
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition duration-200"
+              placeholder="Describe las actividades del tour..."
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
             />
           </div>
 
@@ -154,17 +227,17 @@ function TourForm({ onTourCreado }) {
                 htmlFor="precio"
                 className="block text-sm font-semibold text-slate-700 mb-1.5"
               >
-                Precio ($ USD)
+                Precio ($ USD Entero) <span className="text-red-500">*</span>
               </label>
               <input
                 id="precio"
                 type="number"
-                step="0.01"
+                step="1"
                 required
                 value={precio}
                 onChange={(e) => setPrecio(e.target.value)}
-                placeholder="0.00"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition duration-200"
+                placeholder="Ej: 150"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
               />
             </div>
 
@@ -173,7 +246,7 @@ function TourForm({ onTourCreado }) {
                 htmlFor="ubicacion"
                 className="block text-sm font-semibold text-slate-700 mb-1.5"
               >
-                Ubicación
+                Ubicación <span className="text-red-500">*</span>
               </label>
               <input
                 id="ubicacion"
@@ -182,8 +255,86 @@ function TourForm({ onTourCreado }) {
                 value={ubicacion}
                 onChange={(e) => setUbicacion(e.target.value)}
                 placeholder="Ej: Cusco, Perú"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition duration-200"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
               />
+            </div>
+          </div>
+
+          {/* Fechas de Inicio y Fin */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label
+                htmlFor="fechaInicio"
+                className="block text-sm font-semibold text-slate-700 mb-1.5"
+              >
+                Fecha Inicio <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="fechaInicio"
+                type="date"
+                required
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="fechaFin"
+                className="block text-sm font-semibold text-slate-700 mb-1.5"
+              >
+                Fecha Fin <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="fechaFin"
+                type="date"
+                required
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+              />
+            </div>
+          </div>
+
+          {/* Cupos y Estado */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label
+                htmlFor="cuposTotales"
+                className="block text-sm font-semibold text-slate-700 mb-1.5"
+              >
+                Cupos Totales <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="cuposTotales"
+                type="number"
+                min="1"
+                required
+                value={cuposTotales}
+                onChange={(e) => setCuposTotales(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="estado"
+                className="block text-sm font-semibold text-slate-700 mb-1.5"
+              >
+                Estado <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="estado"
+                required
+                value={estado}
+                onChange={(e) => setEstado(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition cursor-pointer"
+              >
+                <option value="ACTIVO">ACTIVO</option>
+                <option value="AGOTADO">AGOTADO</option>
+                <option value="CANCELADO">CANCELADO</option>
+              </select>
             </div>
           </div>
 
@@ -203,44 +354,16 @@ function TourForm({ onTourCreado }) {
               onChange={(e) => setImagenes(e.target.files)}
               className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer bg-slate-50 rounded-lg border border-slate-200 p-1.5"
             />
-            <p className="text-slate-400 text-xs mt-1.5">
-              Puedes seleccionar varias imágenes al mismo tiempo.
-            </p>
           </div>
 
-          {/* Botón Guardar */}
+          {/* Botón Submit */}
           <div className="pt-2">
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold rounded-lg shadow-sm active:scale-[0.98] transition duration-200 flex items-center justify-center gap-2 cursor-pointer"
+              disabled={loading || loadingCategorias}
+              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold rounded-lg shadow-sm transition duration-200 flex items-center justify-center gap-2 cursor-pointer"
             >
-              {loading ? (
-                <>
-                  <svg
-                    className="animate-spin h-5 w-5 text-white"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  <span>Guardando tour...</span>
-                </>
-              ) : (
-                "Crear Tour"
-              )}
+              {loading ? "Guardando tour..." : "Crear Tour"}
             </button>
           </div>
         </form>

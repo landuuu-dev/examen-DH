@@ -1,3 +1,4 @@
+import React, { useState } from "react"; // 👈 Importación corregida
 import { Routes, Route } from "react-router-dom";
 import Header from "./componentesEstaticos/Header";
 import Footer from "./componentesEstaticos/Footer";
@@ -9,26 +10,58 @@ import Registrarse from "./pages/Registrarse";
 import PanelAdmin from "./pages/panelAdministracion/PanelAdmin";
 import ListaCategorias from "./pages/panelAdministracion/categoria/ListaCategorias";
 import CategoriaForm from "./pages/panelAdministracion/categoria/CategoriasForm";
-import ToursPorCategoria from "./Componentes/TourPorCategoria"; // asegúrate que la ruta esté bien
+import ToursPorCategoria from "./Componentes/TourPorCategoria";
 import ListaTours from "./pages/panelAdministracion/ListaTours";
 import TourForm from "./pages/panelAdministracion/TourForm";
+import PanelUsuario from "./pages/panelUsuario/PanelUsuario";
+import ToursPublicos from "./pages/ToursPublicos";
 
 function App() {
+  const [token, setToken] = useState(
+    () => localStorage.getItem("token") || null,
+  );
+  const [usuario, setUsuario] = useState(() => {
+    const userStored = localStorage.getItem("usuario");
+    return userStored ? JSON.parse(userStored) : null;
+  });
+
+  const handleLoginSuccess = ({ token, usuario }) => {
+    setToken(token);
+    setUsuario(usuario);
+  };
+
   return (
     <>
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/iniciar-sesion" element={<IniciarSesion />} />
+        <Route
+          path="/iniciar-sesion"
+          element={<IniciarSesion onLoginSuccess={handleLoginSuccess} />}
+        />
+        <Route
+          path="/tours"
+          element={<ToursPublicos usuario={usuario} token={token} />}
+        />
+        <Route
+          path="/panel-usuario"
+          element={<PanelUsuario usuario={usuario} token={token} />}
+        />
         <Route path="/registrarse" element={<Registrarse />} />
 
-        {/* Panel de Administración categoria*/}
+        {/* Panel de Administración */}
         <Route path="/panel-admin" element={<PanelAdmin />} />
         <Route path="/panel-admin/categorias" element={<ListaCategorias />} />
-        <Route path="/panel-admin/categorias/crear" element={<CategoriaForm />} />
-        <Route path="/panel-admin/categorias/editar/:id" element={<CategoriaForm />} />
+        <Route
+          path="/panel-admin/categorias/crear"
+          element={<CategoriaForm />}
+        />
+        <Route
+          path="/panel-admin/categorias/editar/:id"
+          element={<CategoriaForm />}
+        />
 
-        {/*Panel de administracion tours*/}
+        {/* Administracion de tours */}
         <Route path="/panel-admin/tours" element={<ListaTours />} />
         <Route path="/panel-admin/tours/crear" element={<TourForm />} />
         <Route path="/panel-admin/tours/editar/:id" element={<TourForm />} />

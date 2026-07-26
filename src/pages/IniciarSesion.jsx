@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function IniciarSesion() {
+export default function IniciarSesion({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -15,7 +15,6 @@ function IniciarSesion() {
     setLoading(true);
 
     try {
-      // En IniciarSesion.jsx
       const response = await fetch(
         "https://backend-examen-dh.onrender.com/auth/login",
         {
@@ -24,7 +23,7 @@ function IniciarSesion() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            correo: email, // <-- CAMBIADO: ahora coincide con request.getCorreo()
+            correo: email.trim(),
             password: password,
           }),
         },
@@ -36,16 +35,33 @@ function IniciarSesion() {
         throw new Error(data.message || "Error al iniciar sesión");
       }
 
-      // Si la respuesta fue exitosa y se recibe un token, se suele guardar
-      if (data.token) {
-        localStorage.setItem("token", data.token);
+      const token = data.token;
+      const rol = data.rol;
+
+      // Intentamos obtener el ID si el backend lo devuelve en la respuesta directa
+      // Si el backend devuelve data.id, data.userId, o data.idUsuario
+      const idReal = data.id || data.userId || data.idUsuario || null;
+
+      const usuarioObj = {
+        id: idReal, // Será null si el backend solo devuelve token y rol
+        correo: email.trim().toLowerCase(),
+        rol: rol,
+      };
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("usuario", JSON.stringify(usuarioObj));
+
+      // 👈 AGREGA ESTA LÍNEA PARA NOTIFICAR AL HEADER DE INMEDIATO:
+      window.dispatchEvent(new Event("loginStateChange"));
+
+      if (onLoginSuccess) {
+        onLoginSuccess({ token, usuario: usuarioObj });
       }
 
-      // Redirección condicional según el correo del usuario
-      if (email.trim().toLowerCase() === "cynthia.quispe.blas@gmail.com") {
-        navigate("/panel-admin"); // Asegúrate de que esta ruta renderice tu componente <PanelAdmin />
+      if (rol === "ADMIN") {
+        navigate("/panel-admin");
       } else {
-        navigate("/"); // Redirección por defecto para otros usuarios
+        navigate("/panel-usuario");
       }
     } catch (err) {
       setError(err.message || "Ocurrió un error inesperado");
@@ -55,17 +71,19 @@ function IniciarSesion() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center bg-slate-950 px-4 py-12">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl">
+    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center bg-slate-50 px-4 py-12">
+      <div className="w-full max-w-md bg-white border border-slate-200/80 rounded-2xl p-8 shadow-sm">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-white mb-2">Iniciar Sesión</h2>
-          <p className="text-slate-400 text-sm">
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">
+            Iniciar Sesión
+          </h2>
+          <p className="text-slate-500 text-sm">
             Ingresa tus credenciales para acceder
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm text-center">
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm text-center font-medium">
             {error}
           </div>
         )}
@@ -74,7 +92,7 @@ function IniciarSesion() {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-slate-300 mb-1.5"
+              className="block text-sm font-semibold text-slate-700 mb-1.5"
             >
               Correo Electrónico
             </label>
@@ -85,14 +103,14 @@ function IniciarSesion() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="nombre@ejemplo.com"
-              className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition duration-200"
             />
           </div>
 
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-slate-300 mb-1.5"
+              className="block text-sm font-semibold text-slate-700 mb-1.5"
             >
               Contraseña
             </label>
@@ -103,47 +121,19 @@ function IniciarSesion() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition duration-200"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 text-white font-semibold rounded-lg shadow-md shadow-indigo-500/20 active:scale-[0.98] transition duration-200 flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold rounded-xl shadow-xs transition duration-200 flex items-center justify-center gap-2 cursor-pointer"
           >
-            {loading ? (
-              <>
-                <svg
-                  className="animate-spin h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                <span>Ingresando...</span>
-              </>
-            ) : (
-              "Ingresar"
-            )}
+            {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
       </div>
     </div>
   );
 }
-
-export default IniciarSesion;

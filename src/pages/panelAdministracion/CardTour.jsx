@@ -1,6 +1,7 @@
 import React from "react";
 
-function CardTour({ tourData, onDelete, onEdit }) {
+export default function CardTour({ tourData, onDelete, onEdit }) {
+  // Skeleton Loader idéntico a CardCategorias
   if (!tourData) {
     return (
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm animate-pulse">
@@ -16,28 +17,37 @@ function CardTour({ tourData, onDelete, onEdit }) {
     );
   }
 
-  // Normalización de imágenes (soporta tanto 'imagenes', 'images' o props individuales)
+  // 1. Obtener la lista de imágenes independientemente del formato del backend
   const obtenerListaImagenes = () => {
-    if (Array.isArray(tourData.imagenes) && tourData.imagenes.length > 0)
+    if (Array.isArray(tourData.imagenes) && tourData.imagenes.length > 0) {
       return tourData.imagenes;
-    if (Array.isArray(tourData.images) && tourData.images.length > 0)
+    }
+    if (Array.isArray(tourData.images) && tourData.images.length > 0) {
       return tourData.images;
-    if (tourData.imagen1 || tourData.imagen2) {
+    }
+    if (tourData.imagen1 || tourData.imagen2 || tourData.imagen3) {
       return [tourData.imagen1, tourData.imagen2, tourData.imagen3].filter(
         Boolean,
       );
     }
+    if (typeof tourData.imagen === "string") {
+      return [tourData.imagen];
+    }
     return [];
   };
 
+  const listaImagenes = obtenerListaImagenes();
+
+  // Función para formatear URLs de imagen
   const formatUrl = (url) => {
-    if (!url || typeof url !== "string") return null;
-    return url.startsWith("/")
-      ? `https://backend-examen-dh.onrender.com${url}`
-      : url;
+    if (!url) return null;
+    if (typeof url !== "string") return null;
+    if (url.startsWith("/")) {
+      return `https://backend-examen-dh.onrender.com${url}`;
+    }
+    return url;
   };
 
-  const listaImagenes = obtenerListaImagenes();
   const imagenPrincipal = formatUrl(listaImagenes[0]);
   const imagenesAdicionales = listaImagenes
     .slice(1)
@@ -47,12 +57,12 @@ function CardTour({ tourData, onDelete, onEdit }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between group">
       <div>
-        {/* Banner de Imagen con Badges */}
+        {/* Banner / Imagen Principal */}
         <div className="relative w-full h-48 bg-slate-100 overflow-hidden">
           {imagenPrincipal ? (
             <img
               src={imagenPrincipal}
-              alt={`Imagen de ${tourData.nombre}`}
+              alt={`Imagen de ${tourData.nombre || tourData.title}`}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {
                 e.target.onerror = null;
@@ -66,46 +76,34 @@ function CardTour({ tourData, onDelete, onEdit }) {
             </div>
           )}
 
-          {/* Badge de Categoría (si existe) */}
-          {tourData.categoria?.nombre && (
-            <span className="absolute top-3 left-3 px-2.5 py-1 bg-indigo-600/90 backdrop-blur-xs text-white text-xs font-semibold rounded-full shadow-xs capitalize">
-              {tourData.categoria.nombre}
-            </span>
-          )}
+          {/* Badge de ID */}
+          <span className="absolute top-3 right-3 px-2.5 py-1 bg-slate-900/70 backdrop-blur-xs text-white text-xs font-mono rounded-full shadow-xs">
+            #{String(tourData.id || "").slice(-4)}
+          </span>
 
-          {/* Precio Badge */}
-          {tourData.precio !== undefined && (
-            <span className="absolute bottom-3 right-3 px-3 py-1 bg-slate-900/80 backdrop-blur-xs text-emerald-400 text-xs font-bold rounded-full shadow-xs">
-              ${tourData.precio} USD
+          {/* Badge opcional de categoría o precio si viene en el tour */}
+          {tourData.categoriaNombre && (
+            <span className="absolute top-3 left-3 px-2.5 py-1 bg-amber-500/90 text-white text-xs font-medium rounded-full shadow-xs">
+              {tourData.categoriaNombre}
             </span>
           )}
         </div>
 
-        {/* Detalles del Tour */}
+        {/* Contenido de la Card */}
         <div className="p-5">
-          <div className="flex justify-between items-start mb-1.5 gap-2">
-            <h3 className="text-xl font-bold text-slate-900 capitalize line-clamp-1">
-              {tourData.nombre}
-            </h3>
-          </div>
-
-          {/* Ubicación / Duración opcional */}
-          {tourData.ubicacion && (
-            <p className="text-xs text-indigo-600 font-medium mb-2 flex items-center gap-1">
-              📍 {tourData.ubicacion}
-            </p>
-          )}
+          <h3 className="text-xl font-bold text-slate-900 mb-2 capitalize line-clamp-1">
+            {tourData.nombre || tourData.title || "Tour sin nombre"}
+          </h3>
 
           <p className="text-slate-600 text-sm line-clamp-3 mb-4 leading-relaxed">
-            {tourData.descripcion ||
-              "Sin descripción disponible para este tour."}
+            {tourData.descripcion || "Sin descripción disponible."}
           </p>
 
-          {/* Miniaturas de imágenes extra */}
+          {/* Miniaturas de imágenes adicionales */}
           {imagenesAdicionales.length > 0 && (
             <div className="flex items-center gap-2 mb-4 pt-2 border-t border-slate-100">
               <span className="text-xs text-slate-400 font-medium">
-                Fotos extra:
+                Más fotos:
               </span>
               <div className="flex gap-1.5">
                 {imagenesAdicionales.map((imgUrl, index) => (
@@ -125,7 +123,7 @@ function CardTour({ tourData, onDelete, onEdit }) {
       {/* Botones de Acción */}
       <div className="p-5 pt-0 grid grid-cols-2 gap-2.5">
         <button
-          onClick={() => onEdit(tourData)}
+          onClick={() => onEdit && onEdit(tourData)}
           className="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-700 text-sm font-semibold rounded-xl transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <svg
@@ -145,7 +143,7 @@ function CardTour({ tourData, onDelete, onEdit }) {
         </button>
 
         <button
-          onClick={() => onDelete(tourData.id)}
+          onClick={() => onDelete && onDelete(tourData.id)}
           className="w-full py-2 px-3 bg-red-50 hover:bg-red-100 border border-red-200/80 text-red-600 text-sm font-semibold rounded-xl transition duration-150 flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <svg
@@ -167,5 +165,3 @@ function CardTour({ tourData, onDelete, onEdit }) {
     </div>
   );
 }
-
-export default CardTour;

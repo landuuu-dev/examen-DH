@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
+// Al inicio de Recomendaciones.jsx
+import BotonFavorito from "../componentesEstaticos/BotonFavorito";
+import { useFavoritos } from "../hooks/UseFavoritos"; // Ajusta la ruta a tu archivo
 
-function Recomendaciones() {
+function Recomendaciones({ usuario, token }) {
+  const { favoritosIds, toggleFavorito } = useFavoritos(usuario, token);
+
   const [tours, setTours] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const toursPerPage = 10;
@@ -14,7 +19,6 @@ function Recomendaciones() {
   const getImagenUrl = (img) => {
     if (!img) return "";
 
-    // Si la imagen es un string y ya incluye http:// o https://
     if (typeof img === "string") {
       if (img.startsWith("http://") || img.startsWith("https://")) {
         return img;
@@ -22,7 +26,6 @@ function Recomendaciones() {
       return `${BACKEND_URL}${img.startsWith("/") ? "" : "/"}${img}`;
     }
 
-    // Si la imagen viene como objeto (ej: { id: 1, url: '...' })
     if (typeof img === "object" && img.url) {
       if (img.url.startsWith("http://") || img.url.startsWith("https://")) {
         return img.url;
@@ -37,12 +40,16 @@ function Recomendaciones() {
     fetch(`${BACKEND_URL}/tours`)
       .then((res) => res.json())
       .then((data) => {
-        // Log para depuración en la consola de F12
-        console.log("Respuesta obtenida de /tours:", data);
+        // Extraer la lista sin importar si viene como Array directo o dentro de .content
+        let listaRaw = [];
+        if (Array.isArray(data)) {
+          listaRaw = data;
+        } else if (data && Array.isArray(data.content)) {
+          listaRaw = data.content;
+        }
 
-        const toursAleatorios = Array.isArray(data)
-          ? [...data].sort(() => Math.random() - 0.5)
-          : [];
+        // 🔀 Ordenar aleatoriamente la lista de tours recibida
+        const toursAleatorios = [...listaRaw].sort(() => Math.random() - 0.5);
 
         setTours(toursAleatorios);
         setLoading(false);
@@ -93,7 +100,7 @@ function Recomendaciones() {
   const goToFirst = () => setCurrentPage(1);
   const goToLast = () => setCurrentPage(totalPages);
 
-  // === VISTA DE DETALLE DEL TOUR SELECCIONADO ===
+  // === VISTA DE DETALLE DEL TOUR SELECCIONADO (PÚBLICA) ===
   if (tourSeleccionado) {
     const imagenes =
       tourSeleccionado.imagenes || tourSeleccionado.imagenesUrl || [];
@@ -103,9 +110,16 @@ function Recomendaciones() {
         {/* Encabezado y Volver */}
         <div className="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
           <div>
-            <h2 className="text-3xl font-bold text-slate-800">
-              {tourSeleccionado.nombre}
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl font-bold text-slate-800">
+                {tourSeleccionado.nombre}
+              </h2>
+              {tourSeleccionado.nombreCategoria && (
+                <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">
+                  {tourSeleccionado.nombreCategoria}
+                </span>
+              )}
+            </div>
             <p className="text-slate-500 text-sm mt-1">
               📍 {tourSeleccionado.ubicacion || "Ubicación no especificada"}
             </p>
@@ -117,7 +131,7 @@ function Recomendaciones() {
             }}
             className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition"
           >
-            ← Volver al listado
+            ← Volver a recomendaciones
           </button>
         </div>
 
@@ -126,7 +140,7 @@ function Recomendaciones() {
           <p className="text-slate-600 leading-relaxed md:w-3/4">
             {tourSeleccionado.descripcion}
           </p>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <span className="text-sm text-slate-400 block">
               Precio por persona
             </span>
@@ -208,9 +222,9 @@ function Recomendaciones() {
     );
   }
 
-  // === VISTA PRINCIPAL (LISTADO DE TOURS) ===
+  // === VISTA PRINCIPAL (LISTADO DE TOURS ALEATORIOS) ===
   return (
-    <div className="p-6 max-w-7xl mx-auto mt-20">
+    <div className="p-6 max-w-7xl mx-auto mt-12">
       <h2 className="text-3xl font-bold text-center mb-8 text-indigo-700">
         Recomendaciones
       </h2>
@@ -221,7 +235,7 @@ function Recomendaciones() {
         </p>
       ) : (
         <>
-          {/* Tarjetas de Tours */}
+          {/* Tarjetas Públicas de Tours */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             {currentTours.map((tour) => {
               const listaImagenes = tour.imagenes || tour.imagenesUrl || [];
@@ -237,19 +251,36 @@ function Recomendaciones() {
                   className="bg-white shadow-sm hover:shadow-xl rounded-2xl p-5 border border-slate-200 hover:border-indigo-200 transition-all duration-300 cursor-pointer flex flex-col justify-between group"
                 >
                   <div>
-                    {primeraImagen ? (
-                      <div className="overflow-hidden rounded-xl mb-4 h-48 bg-slate-100">
+                    {/* Dentro de la tarjeta del Tour en Recomendaciones.jsx */}
+                    <div className="relative overflow-hidden rounded-xl mb-4 h-48 bg-slate-100">
+                      {primeraImagen ? (
                         <img
                           src={primeraImagen}
                           alt={tour.nombre}
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                         />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                          Sin Imagen
+                        </div>
+                      )}
+
+                      {/* Categoría arriba a la derecha */}
+                      {tour.nombreCategoria && (
+                        <span className="absolute top-3 right-3 bg-indigo-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow-xs">
+                          {tour.nombreCategoria}
+                        </span>
+                      )}
+
+                      {/* 🔴 BOTÓN DE FAVORITO (Arriba a la izquierda) */}
+                      <div className="absolute top-3 left-3 z-10">
+                        <BotonFavorito
+                          tourId={tour.id}
+                          esFavorito={favoritosIds.includes(tour.id)}
+                          onToggle={toggleFavorito}
+                        />
                       </div>
-                    ) : (
-                      <div className="w-full h-48 bg-slate-100 rounded-xl mb-4 flex items-center justify-center text-slate-400 text-sm">
-                        Sin Imagen
-                      </div>
-                    )}
+                    </div>
 
                     <h3 className="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition mb-2">
                       {tour.nombre}
@@ -273,7 +304,7 @@ function Recomendaciones() {
             })}
           </div>
 
-          {/* Controls de Paginación */}
+          {/* Controles de Paginación */}
           {totalPages > 1 && (
             <div className="flex flex-wrap justify-center items-center gap-2 pt-4 border-t border-slate-200">
               <button
