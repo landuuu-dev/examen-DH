@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-// Al inicio de Recomendaciones.jsx
 import BotonFavorito from "../componentesEstaticos/BotonFavorito";
-import { useFavoritos } from "../hooks/UseFavoritos"; // Ajusta la ruta a tu archivo
+import { useFavoritos } from "../hooks/UseFavoritos";
+import { inscribirseATour, desinscribirseDeTour } from "../hooks/TourService";
 
 function Recomendaciones({ usuario, token }) {
   const { favoritosIds, toggleFavorito } = useFavoritos(usuario, token);
@@ -13,9 +13,13 @@ function Recomendaciones({ usuario, token }) {
   const [tourSeleccionado, setTourSeleccionado] = useState(null);
   const [verTodasImagenes, setVerTodasImagenes] = useState(false);
 
+  // Estado para controlar la inscripción en curso y la lista de IDs inscriptos
+  const [inscribiendoId, setInscribiendoId] = useState(null);
+  const [misInscripciones, setMisInscripciones] = useState([]);
+
   const BACKEND_URL = "https://backend-examen-dh.onrender.com";
 
-  // Función auxiliar para formatear la URL de las imágenes correctamente
+  // Función auxiliar para formatear la URL de las imágenes
   const getImagenUrl = (img) => {
     if (!img) return "";
 
@@ -36,11 +40,11 @@ function Recomendaciones({ usuario, token }) {
     return "";
   };
 
+  // Cargar tours al montar el componente
   useEffect(() => {
     fetch(`${BACKEND_URL}/tours`)
       .then((res) => res.json())
       .then((data) => {
-        // Extraer la lista sin importar si viene como Array directo o dentro de .content
         let listaRaw = [];
         if (Array.isArray(data)) {
           listaRaw = data;
@@ -48,9 +52,7 @@ function Recomendaciones({ usuario, token }) {
           listaRaw = data.content;
         }
 
-        // 🔀 Ordenar aleatoriamente la lista de tours recibida
         const toursAleatorios = [...listaRaw].sort(() => Math.random() - 0.5);
-
         setTours(toursAleatorios);
         setLoading(false);
       })
@@ -59,6 +61,58 @@ function Recomendaciones({ usuario, token }) {
         setLoading(false);
       });
   }, []);
+
+  // Cargar inscripciones del usuario si está autenticado
+  useEffect(() => {
+    if (usuario && token) {
+      fetch(`${BACKEND_URL}/usuarios/me/inscripciones`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data) => {
+          const ids = data.map((t) => t.id);
+          setMisInscripciones(ids);
+        })
+        .catch((err) =>
+          console.error("Error al cargar mis inscripciones:", err),
+        );
+    } else {
+      setMisInscripciones([]);
+    }
+  }, [usuario, token]);
+
+  // Función para manejar Inscribirse / Desinscribirse
+  // Función para manejar Inscribirse / Desinscribirse usando TourService
+  const handleToggleInscripcion = async (e, tourId) => {
+    e.stopPropagation(); // Evita abrir el detalle si se hace clic desde la tarjeta
+
+    if (!usuario || !token) {
+      alert("Debes iniciar sesión para inscribirte en un tour.");
+      return;
+    }
+
+    const estaInscripto = misInscripciones.includes(tourId);
+    setInscribiendoId(tourId);
+
+    try {
+      if (estaInscripto) {
+        // Llamada al método de TourService para desinscribirse
+        const mensaje = await desinscribirseDeTour(tourId, token);
+        setMisInscripciones((prev) => prev.filter((id) => id !== tourId));
+        alert(mensaje || "Te has desinscripto del tour correctamente.");
+      } else {
+        // Llamada al método de TourService para inscribirse
+        const mensaje = await inscribirseATour(tourId, token);
+        setMisInscripciones((prev) => [...prev, tourId]);
+        alert(mensaje || "¡Inscripción realizada con éxito!");
+      }
+    } catch (err) {
+      console.error("Error en la petición de inscripción:", err);
+      alert(err.message || "Ocurrió un error de conexión con el servidor.");
+    } finally {
+      setInscribiendoId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -100,10 +154,12 @@ function Recomendaciones({ usuario, token }) {
   const goToFirst = () => setCurrentPage(1);
   const goToLast = () => setCurrentPage(totalPages);
 
-  // === VISTA DE DETALLE DEL TOUR SELECCIONADO (PÚBLICA) ===
+  // === VISTA DE DETALLE DEL TOUR SELECCIONADO (PÚBLICA CON INSCRIPCIÓN) ===
   if (tourSeleccionado) {
     const imagenes =
       tourSeleccionado.imagenes || tourSeleccionado.imagenesUrl || [];
+    const estaInscripto = misInscripciones.includes(tourSeleccionado.id);
+    const estaCargando = inscribiendoId === tourSeleccionado.id;
 
     return (
       <div className="p-4 md:p-8 max-w-6xl mx-auto mt-6">
@@ -135,25 +191,51 @@ function Recomendaciones({ usuario, token }) {
           </button>
         </div>
 
-        {/* Descripción y Precio */}
-        <div className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col md:flex-row justify-between gap-4">
-          <p className="text-slate-600 leading-relaxed md:w-3/4">
+        {/* Descripción, Precio y Botón de Inscripción */}
+        <div className="mb-6 bg-slate-50 p-6 rounded-xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+          <p className="text-slate-600 leading-relaxed md:w-2/3">
             {tourSeleccionado.descripcion}
           </p>
-          <div className="text-right shrink-0">
-            <span className="text-sm text-slate-400 block">
-              Precio por persona
-            </span>
-            <span className="text-2xl font-bold text-indigo-600">
-              ${tourSeleccionado.precio}
-            </span>
+
+          <div className="flex flex-col items-end gap-3 w-full md:w-auto shrink-0 border-t md:border-t-0 md:border-l border-slate-200 pt-4 md:pt-0 md:pl-6">
+            <div className="text-right">
+              <span className="text-sm text-slate-400 block">
+                Precio por persona
+              </span>
+              <span className="text-3xl font-bold text-indigo-600">
+                ${tourSeleccionado.precio}
+              </span>
+            </div>
+
+            {/* 🎟️ BOTÓN PRINCIPAL DE INSCRIPCIÓN */}
+            <button
+              onClick={(e) => handleToggleInscripcion(e, tourSeleccionado.id)}
+              disabled={estaCargando}
+              className={`w-full md:w-auto px-6 py-3 font-semibold rounded-xl transition shadow-md flex items-center justify-center gap-2 ${
+                estaInscripto
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  : "bg-indigo-600 hover:bg-indigo-700 text-white"
+              } disabled:opacity-50`}
+            >
+              {estaCargando ? (
+                <span>Procesando...</span>
+              ) : estaInscripto ? (
+                <>
+                  <span>✓ Inscripto</span>
+                  <span className="text-xs opacity-80">
+                    (Haz clic para cancelar)
+                  </span>
+                </>
+              ) : (
+                <span>🎟️ Inscribirme al tour</span>
+              )}
+            </button>
           </div>
         </div>
 
         {/* Galería de Imágenes */}
         {imagenes.length > 0 ? (
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Imagen Principal */}
             <div className="md:w-1/2">
               <img
                 src={getImagenUrl(imagenes[0])}
@@ -162,7 +244,6 @@ function Recomendaciones({ usuario, token }) {
               />
             </div>
 
-            {/* Cuadrícula de Imágenes Secundarias */}
             <div className="md:w-1/2 grid grid-cols-2 gap-2 relative">
               {imagenes.slice(1, 5).map((img, i) => (
                 <img
@@ -173,7 +254,6 @@ function Recomendaciones({ usuario, token }) {
                 />
               ))}
 
-              {/* Botón "Ver más" sobrepuesto si hay más de 5 imágenes */}
               {imagenes.length > 5 && (
                 <button
                   onClick={() => setVerTodasImagenes(true)}
@@ -243,6 +323,8 @@ function Recomendaciones({ usuario, token }) {
                 listaImagenes.length > 0
                   ? getImagenUrl(listaImagenes[0])
                   : null;
+              const estaInscripto = misInscripciones.includes(tour.id);
+              const estaCargando = inscribiendoId === tour.id;
 
               return (
                 <div
@@ -251,7 +333,6 @@ function Recomendaciones({ usuario, token }) {
                   className="bg-white shadow-sm hover:shadow-xl rounded-2xl p-5 border border-slate-200 hover:border-indigo-200 transition-all duration-300 cursor-pointer flex flex-col justify-between group"
                 >
                   <div>
-                    {/* Dentro de la tarjeta del Tour en Recomendaciones.jsx */}
                     <div className="relative overflow-hidden rounded-xl mb-4 h-48 bg-slate-100">
                       {primeraImagen ? (
                         <img
@@ -291,13 +372,33 @@ function Recomendaciones({ usuario, token }) {
                     </p>
                   </div>
 
-                  <div className="border-t border-slate-100 pt-3 flex justify-between items-center mt-2">
-                    <span className="text-xs text-slate-400">
-                      📍 {tour.ubicacion || "General"}
-                    </span>
-                    <span className="font-bold text-indigo-600 text-lg">
-                      ${tour.precio}
-                    </span>
+                  {/* Pie de la tarjeta con precio y botón rápido de inscripción */}
+                  <div className="border-t border-slate-100 pt-3 flex items-center justify-between gap-2 mt-2">
+                    <div>
+                      <span className="text-xs text-slate-400 block">
+                        📍 {tour.ubicacion || "General"}
+                      </span>
+                      <span className="font-bold text-indigo-600 text-lg">
+                        ${tour.precio}
+                      </span>
+                    </div>
+
+                    {/* 🎟️ BOTÓN RÁPIDO EN LA TARJETA */}
+                    <button
+                      onClick={(e) => handleToggleInscripcion(e, tour.id)}
+                      disabled={estaCargando}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition shadow-xs ${
+                        estaInscripto
+                          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                          : "bg-indigo-600 text-white hover:bg-indigo-700"
+                      } disabled:opacity-50`}
+                    >
+                      {estaCargando
+                        ? "..."
+                        : estaInscripto
+                          ? "✓ Inscripto"
+                          : "Inscribirme"}
+                    </button>
                   </div>
                 </div>
               );

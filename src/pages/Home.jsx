@@ -36,7 +36,10 @@ function Home({ usuario: usuarioProp, token: tokenProp }) {
     <section className="pag-inicio">
       <BarraBusqueda />
       <Categorias />
+      {/* 🎯 Pasamos usuario y token a Recomendaciones */}
       <Recomendaciones
+        usuario={usuarioFinal}
+        token={tokenFinal}
         favoritosIds={favoritosIds}
         toggleFavorito={toggleFavorito}
       />
