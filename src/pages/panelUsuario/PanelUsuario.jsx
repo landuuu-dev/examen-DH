@@ -18,6 +18,10 @@ export default function PanelUsuario() {
   const [procesandoTourId, setProcesandoTourId] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
 
+  // Estados para la vista ampliada/detallada del tour
+  const [tourSeleccionado, setTourSeleccionado] = useState(null);
+  const [verTodasImagenes, setVerTodasImagenes] = useState(false);
+
   const BACKEND_URL = "https://backend-examen-dh.onrender.com";
   const userId = usuario?.id || usuario?._id || usuario?.idUsuario;
 
@@ -57,7 +61,7 @@ export default function PanelUsuario() {
           Authorization: `Bearer ${token}`,
         };
 
-        // 1. Peticiones iniciales: Favoritos, Mis Inscripciones y Catálogo de Tours
+        // Peticiones iniciales: Favoritos, Mis Inscripciones y Catálogo de Tours
         const [resFavs, resInsc, resTodosTours] = await Promise.all([
           fetch(`${BACKEND_URL}/usuarios/${userId}/favoritos`, { headers }),
           fetch(`${BACKEND_URL}/usuarios/${userId}/mis-inscripciones`, {
@@ -81,7 +85,6 @@ export default function PanelUsuario() {
         // Procesar Inscripciones
         if (resInsc.ok) {
           const dataInsc = await resInsc.json();
-          console.log("📦 DATOS CRUDOS DE INSCRIPCIONES:", dataInsc);
 
           if (Array.isArray(dataInsc)) {
             const ids = dataInsc.map(
@@ -89,15 +92,13 @@ export default function PanelUsuario() {
             );
             setMisInscripcionesIds(ids.filter(Boolean));
 
-            // Cruzamos los IDs con la lista completa de tours para obtener precio, foto, etc.
+            // Cruzamos los IDs con la lista completa de tours
             const toursCompletosInscritos = dataInsc.map((inscripcion) => {
               const targetId = inscripcion.tourId || inscripcion.idTour;
               const tourEncontrado = todosLosTours.find(
                 (t) => (t.id || t._id) === targetId,
               );
 
-              // Si encontramos el tour en el catálogo, lo usamos.
-              // Si no, hacemos un respaldo con lo que vino en la inscripción.
               return (
                 tourEncontrado || {
                   id: targetId || inscripcion.id,
@@ -124,7 +125,8 @@ export default function PanelUsuario() {
     cargarDatos();
   }, [userId, token]);
 
-  const handleQuitarFavorito = async (tourId) => {
+  const handleQuitarFavorito = async (e, tourId) => {
+    e.stopPropagation(); // Evita que se abra la vista ampliada
     if (!token || !userId) return;
 
     setMisFavoritos((prev) => prev.filter((t) => (t.id || t._id) !== tourId));
@@ -142,7 +144,8 @@ export default function PanelUsuario() {
     }
   };
 
-  const handleToggleInscripcion = async (tour) => {
+  const handleToggleInscripcion = async (e, tour) => {
+    if (e) e.stopPropagation(); // Evita que se abra la vista ampliada
     if (!token) return;
 
     const tourId = tour?.id || tour?._id;
@@ -202,6 +205,159 @@ export default function PanelUsuario() {
     );
   }
 
+  // === VISTA AMPLIADA / DETALLE DEL TOUR SELECCIONADO ===
+  if (tourSeleccionado) {
+    const imagenes =
+      tourSeleccionado.imagenes || tourSeleccionado.imagenesUrl || [];
+    const tourIdActual = tourSeleccionado.id || tourSeleccionado._id;
+    const estaInscrito = misInscripcionesIds.includes(tourIdActual);
+    const estaProcesando = procesandoTourId === tourIdActual;
+
+    return (
+      <div className="p-4 md:p-8 max-w-6xl mx-auto mt-6">
+        {/* Encabezado y Volver */}
+        <div className="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-3xl font-bold text-slate-800">
+                {tourSeleccionado.nombre || tourSeleccionado.titulo}
+              </h2>
+              {tourSeleccionado.categoria?.nombre && (
+                <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">
+                  {tourSeleccionado.categoria.nombre}
+                </span>
+              )}
+            </div>
+            <p className="text-slate-500 text-sm mt-1">
+              📍{" "}
+              {tourSeleccionado.ubicacion ||
+                tourSeleccionado.destino ||
+                "Ubicación no especificada"}
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              setTourSeleccionado(null);
+              setVerTodasImagenes(false);
+            }}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition cursor-pointer"
+          >
+            ← Volver a Mi Cuenta
+          </button>
+        </div>
+
+        {/* Descripción, Precio y Botón de Inscripción */}
+        <div className="mb-6 bg-slate-50 p-6 rounded-xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
+          <p className="text-slate-600 leading-relaxed md:w-2/3">
+            {tourSeleccionado.descripcion || "Sin descripción disponible."}
+          </p>
+
+          <div className="flex flex-col items-end gap-3 w-full md:w-auto shrink-0 border-t md:border-t-0 md:border-l border-slate-200 pt-4 md:pt-0 md:pl-6">
+            <div className="text-right">
+              <span className="text-sm text-slate-400 block">
+                Precio por persona
+              </span>
+              <span className="text-3xl font-bold text-indigo-600">
+                ${tourSeleccionado.precio ?? 0} USD
+              </span>
+            </div>
+
+            <button
+              onClick={(e) => handleToggleInscripcion(e, tourSeleccionado)}
+              disabled={estaProcesando}
+              className={`w-full md:w-auto px-6 py-3 font-semibold rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer ${
+                estaInscrito
+                  ? "bg-rose-600 hover:bg-rose-700 text-white"
+                  : "bg-indigo-600 hover:bg-indigo-700 text-white"
+              } disabled:opacity-50`}
+            >
+              {estaProcesando ? (
+                <span>Procesando...</span>
+              ) : estaInscrito ? (
+                <>
+                  <span>✓ Inscrito</span>
+                  <span className="text-xs opacity-80">
+                    (Cancelar inscripción)
+                  </span>
+                </>
+              ) : (
+                <span>🎟️ Inscribirme al tour</span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Galería de Imágenes */}
+        {imagenes.length > 0 ? (
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="md:w-1/2">
+              <img
+                src={getImagenUrl(imagenes[0])}
+                alt={tourSeleccionado.nombre}
+                className="w-full h-80 md:h-[400px] object-cover rounded-2xl shadow-md"
+              />
+            </div>
+
+            <div className="md:w-1/2 grid grid-cols-2 gap-2 relative">
+              {imagenes.slice(1, 5).map((img, i) => (
+                <img
+                  key={i}
+                  src={getImagenUrl(img)}
+                  alt={`${tourSeleccionado.nombre} miniatura ${i + 1}`}
+                  className="w-full h-36 md:h-48 object-cover rounded-xl shadow-sm"
+                />
+              ))}
+
+              {imagenes.length > 5 && (
+                <button
+                  onClick={() => setVerTodasImagenes(true)}
+                  className="col-span-2 py-3 bg-slate-900/80 hover:bg-slate-900 text-white text-center font-semibold rounded-xl transition backdrop-blur-sm cursor-pointer"
+                >
+                  Ver todas las fotos ({imagenes.length})
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-slate-100 rounded-xl text-slate-400">
+            No hay imágenes disponibles para este tour.
+          </div>
+        )}
+
+        {/* Modal de Galería Modal */}
+        {verTodasImagenes && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-5xl my-8 max-h-[90vh] flex flex-col">
+              <div className="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 className="text-xl font-bold text-slate-800">
+                  Todas las imágenes ({imagenes.length})
+                </h3>
+                <button
+                  onClick={() => setVerTodasImagenes(false)}
+                  className="text-slate-400 hover:text-slate-600 font-bold text-2xl px-2 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto p-2">
+                {imagenes.map((img, i) => (
+                  <img
+                    key={i}
+                    src={getImagenUrl(img)}
+                    alt={`${tourSeleccionado.nombre} ${i + 1}`}
+                    className="w-full h-56 object-cover rounded-xl shadow"
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // === VISTA PRINCIPAL (LISTADO FAVORITOS + INSCRIPCIONES) ===
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-10">
       <section className="bg-white rounded-2xl p-6 shadow-xs border border-slate-200 flex flex-col sm:flex-row items-center gap-6">
@@ -282,13 +438,14 @@ export default function PanelUsuario() {
               return (
                 <div
                   key={`inscrito-${tourId}-${index}`}
-                  className="bg-white rounded-2xl border border-emerald-200 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden"
+                  onClick={() => setTourSeleccionado(tour)}
+                  className="bg-white rounded-2xl border border-emerald-200 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden cursor-pointer group"
                 >
                   <div className="relative h-44 w-full overflow-hidden bg-slate-100">
                     <img
                       src={imagenFinal}
                       alt={nombre}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <span className="absolute top-3 right-3 bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-xs flex items-center gap-1">
                       ✓ Inscripto
@@ -297,7 +454,7 @@ export default function PanelUsuario() {
 
                   <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-1">
-                      <h4 className="font-bold text-slate-900 text-lg line-clamp-1">
+                      <h4 className="font-bold text-slate-900 text-lg line-clamp-1 group-hover:text-indigo-600 transition">
                         {nombre}
                       </h4>
                       <p className="text-slate-600 text-sm line-clamp-2">
@@ -314,9 +471,9 @@ export default function PanelUsuario() {
                       </span>
 
                       <button
-                        onClick={() => handleToggleInscripcion(tour)}
+                        onClick={(e) => handleToggleInscripcion(e, tour)}
                         disabled={procesando}
-                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-50"
+                        className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-50 cursor-pointer"
                       >
                         {procesando ? "Procesando..." : "Cancelar inscripción"}
                       </button>
@@ -392,7 +549,8 @@ export default function PanelUsuario() {
               return (
                 <div
                   key={`favorito-${tourId}-${index}`}
-                  className="group bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col overflow-hidden"
+                  onClick={() => setTourSeleccionado(tour)}
+                  className="group bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden cursor-pointer"
                 >
                   <div className="relative h-48 w-full overflow-hidden bg-slate-100">
                     <img
@@ -401,7 +559,7 @@ export default function PanelUsuario() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     {tour.categoria?.nombre && (
-                      <span className="absolute top-3 left-3 bg-slate-900 text-white text-xs font-bold px-2.5 py-1 rounded-lg">
+                      <span className="absolute top-3 left-3 bg-slate-900/90 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-xs">
                         {tour.categoria.nombre}
                       </span>
                     )}
@@ -409,7 +567,7 @@ export default function PanelUsuario() {
 
                   <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-2">
-                      <h4 className="font-bold text-slate-900 text-lg leading-snug line-clamp-1">
+                      <h4 className="font-bold text-slate-900 text-lg leading-snug line-clamp-1 group-hover:text-indigo-600 transition">
                         {nombre}
                       </h4>
                       <p className="text-slate-600 text-sm line-clamp-2 leading-relaxed">
@@ -431,7 +589,7 @@ export default function PanelUsuario() {
                       </div>
 
                       <button
-                        onClick={() => handleQuitarFavorito(tourId)}
+                        onClick={(e) => handleQuitarFavorito(e, tourId)}
                         className="inline-flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold px-3 py-2 rounded-xl border border-rose-200 transition duration-150 cursor-pointer active:scale-95"
                         title="Quitar de favoritos"
                       >
@@ -440,7 +598,7 @@ export default function PanelUsuario() {
                     </div>
 
                     <button
-                      onClick={() => handleToggleInscripcion(tour)}
+                      onClick={(e) => handleToggleInscripcion(e, tour)}
                       disabled={procesando}
                       className={`w-full py-2.5 px-4 rounded-xl font-bold text-sm transition duration-150 cursor-pointer flex items-center justify-center gap-2 ${
                         estaInscrito

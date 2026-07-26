@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import CardTour from "../panelAdministracion/CardTour";
-import EditTourModal from "../panelAdministracion/EditTourModal";
+import CardTour from "./CardTour";
+import EditTourModal from "./EditTourModal";
 
 export default function ListaTours() {
   const [tours, setTours] = useState([]);

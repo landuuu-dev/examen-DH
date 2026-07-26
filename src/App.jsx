@@ -11,10 +11,11 @@ import PanelAdmin from "./pages/panelAdministracion/PanelAdmin";
 import ListaCategorias from "./pages/panelAdministracion/categoria/ListaCategorias";
 import CategoriaForm from "./pages/panelAdministracion/categoria/CategoriasForm";
 import ToursPorCategoria from "./Componentes/TourPorCategoria";
-import ListaTours from "./pages/panelAdministracion/ListaTours";
-import TourForm from "./pages/panelAdministracion/TourForm";
+import ListaTours from "./pages/panelAdministracion/Tour/ListaTours";
+import TourForm from "./pages/panelAdministracion/Tour/TourForm";
 import PanelUsuario from "./pages/panelUsuario/PanelUsuario";
 import ToursPublicos from "./pages/ToursPublicos";
+import Categorias from "./Componentes/Categorias";
 
 function App() {
   const [token, setToken] = useState(
@@ -65,10 +66,13 @@ function App() {
         <Route path="/panel-admin/tours" element={<ListaTours />} />
         <Route path="/panel-admin/tours/crear" element={<TourForm />} />
         <Route path="/panel-admin/tours/editar/:id" element={<TourForm />} />
+        {/* Tus otras rutas */}
+        <Route path="/categorias" element={<Categorias />} />
 
-        {/* Tours por categoría */}
+        {/* 🔴 RUTA CLAVE: coincide con el navigate(`/categorias/${cat.id}/tours`) */}
         <Route path="/categorias/:id/tours" element={<ToursPorCategoria />} />
       </Routes>
+
       <Footer />
     </>
   );

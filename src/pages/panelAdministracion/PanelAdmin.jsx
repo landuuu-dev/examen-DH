@@ -1,5 +1,5 @@
 import React from "react";
-import HeaderAdmin from "./categoria/HeaderAdmin";
+import HeaderAdmin from "./HeaderAdmin";
 
 function PanelAdmin() {
   return (

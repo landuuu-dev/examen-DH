@@ -43,7 +43,7 @@ function Recomendaciones({ usuario, token }) {
   // Cargar tours al montar el componente
   useEffect(() => {
     fetch(`${BACKEND_URL}/tours`)
-      .then((res) => res.json())
+      .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         let listaRaw = [];
         if (Array.isArray(data)) {
@@ -58,30 +58,49 @@ function Recomendaciones({ usuario, token }) {
       })
       .catch((err) => {
         console.error("Error al cargar tours:", err);
+        setTours([]);
         setLoading(false);
       });
   }, []);
 
-  // Cargar inscripciones del usuario si está autenticado
+  // 🔴 CARGAR INSCRIPCIONES CON VALIDACIÓN DEFENSIVA
   useEffect(() => {
-    if (usuario && token) {
-      fetch(`${BACKEND_URL}/usuarios/me/inscripciones`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => (res.ok ? res.json() : []))
-        .then((data) => {
-          const ids = data.map((t) => t.id);
-          setMisInscripciones(ids);
-        })
-        .catch((err) =>
-          console.error("Error al cargar mis inscripciones:", err),
-        );
-    } else {
+    // Si no hay token válido o no hay usuario, resetea el estado y no hace la petición
+    if (!usuario || !token || token === "undefined" || token === "null") {
       setMisInscripciones([]);
+      return;
     }
+
+    fetch(`${BACKEND_URL}/usuarios/me/inscripciones`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => {
+        if (!res.ok) {
+          console.warn(
+            `El backend devolvió ${res.status} en /usuarios/me/inscripciones`,
+          );
+          return [];
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          // Extrae el ID independientemente de si viene como 'id' o '_id'
+          const ids = data.map((t) => t.id || t._id).filter(Boolean);
+          setMisInscripciones(ids);
+        } else {
+          setMisInscripciones([]);
+        }
+      })
+      .catch((err) => {
+        console.error("Error al cargar mis inscripciones:", err);
+        setMisInscripciones([]);
+      });
   }, [usuario, token]);
 
-  // Función para manejar Inscribirse / Desinscribirse
   // Función para manejar Inscribirse / Desinscribirse usando TourService
   const handleToggleInscripcion = async (e, tourId) => {
     e.stopPropagation(); // Evita abrir el detalle si se hace clic desde la tarjeta
@@ -96,12 +115,10 @@ function Recomendaciones({ usuario, token }) {
 
     try {
       if (estaInscripto) {
-        // Llamada al método de TourService para desinscribirse
         const mensaje = await desinscribirseDeTour(tourId, token);
         setMisInscripciones((prev) => prev.filter((id) => id !== tourId));
         alert(mensaje || "Te has desinscripto del tour correctamente.");
       } else {
-        // Llamada al método de TourService para inscribirse
         const mensaje = await inscribirseATour(tourId, token);
         setMisInscripciones((prev) => [...prev, tourId]);
         alert(mensaje || "¡Inscripción realizada con éxito!");
@@ -158,8 +175,9 @@ function Recomendaciones({ usuario, token }) {
   if (tourSeleccionado) {
     const imagenes =
       tourSeleccionado.imagenes || tourSeleccionado.imagenesUrl || [];
-    const estaInscripto = misInscripciones.includes(tourSeleccionado.id);
-    const estaCargando = inscribiendoId === tourSeleccionado.id;
+    const idActual = tourSeleccionado.id || tourSeleccionado._id;
+    const estaInscripto = misInscripciones.includes(idActual);
+    const estaCargando = inscribiendoId === idActual;
 
     return (
       <div className="p-4 md:p-8 max-w-6xl mx-auto mt-6">
@@ -207,9 +225,9 @@ function Recomendaciones({ usuario, token }) {
               </span>
             </div>
 
-            {/* 🎟️ BOTÓN PRINCIPAL DE INSCRIPCIÓN */}
+            {/* BOTÓN PRINCIPAL DE INSCRIPCIÓN */}
             <button
-              onClick={(e) => handleToggleInscripcion(e, tourSeleccionado.id)}
+              onClick={(e) => handleToggleInscripcion(e, idActual)}
               disabled={estaCargando}
               className={`w-full md:w-auto px-6 py-3 font-semibold rounded-xl transition shadow-md flex items-center justify-center gap-2 ${
                 estaInscripto
@@ -318,19 +336,20 @@ function Recomendaciones({ usuario, token }) {
           {/* Tarjetas Públicas de Tours */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             {currentTours.map((tour) => {
+              const tourId = tour.id || tour._id;
               const listaImagenes = tour.imagenes || tour.imagenesUrl || [];
               const primeraImagen =
                 listaImagenes.length > 0
                   ? getImagenUrl(listaImagenes[0])
                   : null;
-              const estaInscripto = misInscripciones.includes(tour.id);
-              const estaCargando = inscribiendoId === tour.id;
+              const estaInscripto = misInscripciones.includes(tourId);
+              const estaCargando = inscribiendoId === tourId;
 
               return (
                 <div
-                  key={tour.id}
+                  key={tourId}
                   onClick={() => setTourSeleccionado(tour)}
-                  className="bg-white shadow-sm hover:shadow-xl rounded-2xl p-5 border border-slate-200 hover:border-indigo-200 transition-all duration-300 cursor-pointer flex flex-col justify-between group"
+                  className="bg-white shadow-xs hover:shadow-xl rounded-2xl p-5 border border-slate-200 hover:border-indigo-200 transition-all duration-300 cursor-pointer flex flex-col justify-between group"
                 >
                   <div>
                     <div className="relative overflow-hidden rounded-xl mb-4 h-48 bg-slate-100">
@@ -353,11 +372,11 @@ function Recomendaciones({ usuario, token }) {
                         </span>
                       )}
 
-                      {/* 🔴 BOTÓN DE FAVORITO (Arriba a la izquierda) */}
+                      {/* BOTÓN DE FAVORITO (Arriba a la izquierda) */}
                       <div className="absolute top-3 left-3 z-10">
                         <BotonFavorito
-                          tourId={tour.id}
-                          esFavorito={favoritosIds.includes(tour.id)}
+                          tourId={tourId}
+                          esFavorito={favoritosIds.includes(tourId)}
                           onToggle={toggleFavorito}
                         />
                       </div>
@@ -383,9 +402,9 @@ function Recomendaciones({ usuario, token }) {
                       </span>
                     </div>
 
-                    {/* 🎟️ BOTÓN RÁPIDO EN LA TARJETA */}
+                    {/* BOTÓN RÁPIDO EN LA TARJETA */}
                     <button
-                      onClick={(e) => handleToggleInscripcion(e, tour.id)}
+                      onClick={(e) => handleToggleInscripcion(e, tourId)}
                       disabled={estaCargando}
                       className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition shadow-xs ${
                         estaInscripto
