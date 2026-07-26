@@ -5,11 +5,35 @@ import { Link, useNavigate } from "react-router-dom";
 function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const navigate = useNavigate();
 
   const comprobarSesion = () => {
     const token = localStorage.getItem("token");
+    const usuarioStorage = localStorage.getItem("usuario");
+
     setIsAuth(!!token);
+
+    if (token && usuarioStorage) {
+      try {
+        const usuario = JSON.parse(usuarioStorage);
+        // Validamos el rol considerando distintas variaciones habituales de backend
+        const esAdmin =
+          usuario?.rol === "SUPER_ADMIN" ||
+          usuario?.rol === "ADMIN" ||
+          usuario?.role === "SUPER_ADMIN" ||
+          usuario?.role === "ADMIN" ||
+          usuario?.esSuperAdmin === true ||
+          usuario?.esAdmin === true;
+
+        setIsSuperAdmin(Boolean(esAdmin));
+      } catch (error) {
+        console.error("Error al parsear el usuario del localStorage:", error);
+        setIsSuperAdmin(false);
+      }
+    } else {
+      setIsSuperAdmin(false);
+    }
   };
 
   useEffect(() => {
@@ -29,6 +53,7 @@ function Header() {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
     setIsAuth(false);
+    setIsSuperAdmin(false);
     setIsOpen(false);
 
     window.dispatchEvent(new Event("loginStateChange"));
@@ -37,7 +62,6 @@ function Header() {
 
   return (
     <>
-      {/* Navbar con fondo blanco sólido y elevación mediante sombra sutil */}
       <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-md border-b border-slate-100">
         <div className="w-full h-20 flex justify-between items-center px-6 md:px-12 max-w-7xl mx-auto">
           {/* Logo */}
@@ -107,6 +131,18 @@ function Header() {
             {isAuth ? (
               // VISTA CON SESIÓN
               <>
+                {/* Botón visible únicamente para el Super Admin */}
+                {isSuperAdmin && (
+                  <Link
+                    to="/panel-admin"
+                    onClick={() => setIsOpen(false)}
+                    className="text-center text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 font-semibold text-base px-5 py-2.5 rounded-xl border border-indigo-200/80 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition duration-150 flex items-center justify-center gap-2"
+                  >
+                    <span className="text-lg">🛠️</span>
+                    <span>Panel de administración</span>
+                  </Link>
+                )}
+
                 <Link
                   to="/panel-usuario"
                   onClick={() => setIsOpen(false)}

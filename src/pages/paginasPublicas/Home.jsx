@@ -1,9 +1,9 @@
 import React from "react";
-import "../estilosCSS/home.css";
-import BarraBusqueda from "../Componentes/BarraBusqueda";
-import Recomendaciones from "../Componentes/Recomendaciones";
-import Categorias from "../Componentes/Categorias";
-import { useFavoritos } from "../hooks/UseFavoritos";
+import "../../estilosCSS/home.css";
+import BarraBusqueda from "../../Componentes/BarraBusqueda";
+import Recomendaciones from "../../Componentes/Recomendaciones";
+import Categorias from "../../Componentes/Categorias";
+import { useFavoritos } from "../../hooks/UseFavoritos";
 
 function Home({ usuario: usuarioProp, token: tokenProp }) {
   // 1. Obtenemos lo guardado en localStorage como respaldo fresco

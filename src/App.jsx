@@ -3,9 +3,9 @@ import { Routes, Route } from "react-router-dom";
 import Header from "./componentesEstaticos/Header";
 import Footer from "./componentesEstaticos/Footer";
 
-import Home from "./pages/Home";
-import IniciarSesion from "./pages/IniciarSesion";
-import Registrarse from "./pages/Registrarse";
+import Home from "./pages/paginasPublicas/Home";
+import IniciarSesion from "./pages/paginasPublicas/IniciarSesion";
+import Registrarse from "./pages/paginasPublicas/Registrarse";
 
 import PanelAdmin from "./pages/panelAdministracion/PanelAdmin";
 import ListaCategorias from "./pages/panelAdministracion/categoria/ListaCategorias";
@@ -14,7 +14,7 @@ import ToursPorCategoria from "./Componentes/TourPorCategoria";
 import ListaTours from "./pages/panelAdministracion/Tour/ListaTours";
 import TourForm from "./pages/panelAdministracion/Tour/TourForm";
 import PanelUsuario from "./pages/panelUsuario/PanelUsuario";
-import ToursPublicos from "./pages/ToursPublicos";
+import ToursPublicos from "./pages/paginasPublicas/ToursPublicos";
 import Categorias from "./Componentes/Categorias";
 
 function App() {

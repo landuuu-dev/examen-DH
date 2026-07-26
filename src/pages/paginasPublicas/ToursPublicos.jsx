@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import BarraBusqueda from "../Componentes/BarraBusqueda"; // Ajusta la ruta según tu estructura
-import BotonFavorito from "../componentesEstaticos/BotonFavorito";
-import { useFavoritos } from "../hooks/UseFavoritos";
+import BarraBusqueda from "../../Componentes/BarraBusqueda"; // Ajusta la ruta según tu estructura
+import BotonFavorito from "../../componentesEstaticos/BotonFavorito";
+import { useFavoritos } from "../../hooks/UseFavoritos";
 
 export default function ToursPublicos({ usuario, token }) {
   // 1. Hook de favoritos para conectarlo con el backend

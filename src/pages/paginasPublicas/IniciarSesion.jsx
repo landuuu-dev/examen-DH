@@ -39,11 +39,10 @@ export default function IniciarSesion({ onLoginSuccess }) {
       const rol = data.rol;
 
       // Intentamos obtener el ID si el backend lo devuelve en la respuesta directa
-      // Si el backend devuelve data.id, data.userId, o data.idUsuario
       const idReal = data.id || data.userId || data.idUsuario || null;
 
       const usuarioObj = {
-        id: idReal, // Será null si el backend solo devuelve token y rol
+        id: idReal,
         correo: email.trim().toLowerCase(),
         rol: rol,
       };
@@ -51,14 +50,21 @@ export default function IniciarSesion({ onLoginSuccess }) {
       localStorage.setItem("token", token);
       localStorage.setItem("usuario", JSON.stringify(usuarioObj));
 
-      // 👈 AGREGA ESTA LÍNEA PARA NOTIFICAR AL HEADER DE INMEDIATO:
+      // Notificar cambios de estado
       window.dispatchEvent(new Event("loginStateChange"));
 
       if (onLoginSuccess) {
         onLoginSuccess({ token, usuario: usuarioObj });
       }
 
-      if (rol === "ADMIN") {
+      // ✅ COMPROBACIÓN FLEXIBLE PARA ROLES DE ADMINISTRADOR
+      const rolUpper = String(rol || "").toUpperCase();
+      const esAdministrador =
+        rolUpper.includes("ADMIN") ||
+        rolUpper === "SUPER_ADMIN" ||
+        rolUpper === "ADMIN";
+
+      if (esAdministrador) {
         navigate("/panel-admin");
       } else {
         navigate("/panel-usuario");
