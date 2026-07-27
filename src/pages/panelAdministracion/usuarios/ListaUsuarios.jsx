@@ -134,7 +134,6 @@ export default function ListaUsuarios() {
     try {
       const token = obtenerToken();
 
-      // 🎯 Apuntamos directamente al endpoint /admin/promote/{id} que creamos en Spring
       const res = await fetch(`${BACKEND_URL}/admin/promote/${usuario.id}`, {
         method: "POST",
         headers: {
@@ -163,6 +162,50 @@ export default function ListaUsuarios() {
     }
   };
 
+  // 🔻 NUEVA FUNCIÓN: Degradación a USER (Exclusiva para SUPER_ADMIN)
+  const handleQuitarAdmin = async (usuario) => {
+    if (!esSuperAdmin) {
+      alert("Solo el Super Admin tiene permisos para remover administradores.");
+      return;
+    }
+
+    const correo = usuario.email || usuario.correo || usuario.nombreUsuario;
+    const confirmar = window.confirm(
+      `¿Deseas quitar los permisos de administrador a ${correo}?`,
+    );
+    if (!confirmar) return;
+
+    try {
+      const token = obtenerToken();
+
+      const res = await fetch(`${BACKEND_URL}/admin/demote/${usuario.id}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (res.ok) {
+        setUsuarios((prev) =>
+          prev.map((u) =>
+            u.id === usuario.id ? { ...u, rol: "USER", role: "USER" } : u,
+          ),
+        );
+        alert("Se le han retirado los permisos de Administrador.");
+      } else if (res.status === 403) {
+        alert(
+          "Error 403: Solo un usuario con rol SUPER_ADMIN puede realizar esta acción.",
+        );
+      } else {
+        alert(`No se pudo remover el rol. Código de estado: ${res.status}`);
+      }
+    } catch (err) {
+      console.error("Error al retirar rol de administrador:", err);
+      alert("Error de conexión al quitar el rol.");
+    }
+  };
+
   const administradores = usuarios.filter(
     (u) =>
       u.rol === "ADMIN" ||
@@ -176,11 +219,11 @@ export default function ListaUsuarios() {
   const renderFilaUsuario = (u) => {
     const correo = u.email || u.correo || u.nombreUsuario || "Sin correo";
     const rolActual = u.rol || u.role || "USUARIO";
-    const esAdmin =
-      rolActual === "ADMIN" ||
-      rolActual === "ROLE_ADMIN" ||
-      rolActual === "SUPER_ADMIN" ||
-      rolActual === "ROLE_SUPER_ADMIN";
+    const esEspectadorAdmin =
+      rolActual === "ADMIN" || rolActual === "ROLE_ADMIN";
+    const esEspectadorSuperAdmin =
+      rolActual === "SUPER_ADMIN" || rolActual === "ROLE_SUPER_ADMIN";
+    const esAdminGeneral = esEspectadorAdmin || esEspectadorSuperAdmin;
 
     return (
       <div
@@ -198,7 +241,7 @@ export default function ListaUsuarios() {
             <div className="flex items-center gap-2 mt-0.5">
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  esAdmin
+                  esAdminGeneral
                     ? "bg-amber-100 text-amber-800 border border-amber-200"
                     : "bg-slate-100 text-slate-600 border border-slate-200"
                 }`}
@@ -213,7 +256,8 @@ export default function ListaUsuarios() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-          {esSuperAdmin && !esAdmin && (
+          {/* BOTÓN 1: Nombrar Admin (solo visible si no es admin) */}
+          {esSuperAdmin && !esAdminGeneral && (
             <button
               onClick={() => handleNombrarAdmin(u)}
               className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 text-indigo-700 text-xs font-semibold rounded-lg transition duration-150 flex items-center gap-1 cursor-pointer"
@@ -222,16 +266,25 @@ export default function ListaUsuarios() {
             </button>
           )}
 
-          {u.id !== usuarioActual?.id &&
-            rolActual !== "SUPER_ADMIN" &&
-            rolActual !== "ROLE_SUPER_ADMIN" && (
-              <button
-                onClick={() => handleEliminarUsuario(u.id, correo)}
-                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 text-xs font-semibold rounded-lg transition duration-150 flex items-center gap-1 cursor-pointer"
-              >
-                <span>🗑️</span> Eliminar
-              </button>
-            )}
+          {/* 🔻 BOTÓN 2: Quitar Admin (solo para SUPER_ADMIN y sobre usuarios con rol ADMIN) */}
+          {esSuperAdmin && esEspectadorAdmin && (
+            <button
+              onClick={() => handleQuitarAdmin(u)}
+              className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-xs font-semibold rounded-lg transition duration-150 flex items-center gap-1 cursor-pointer"
+            >
+              <span>🔻</span> Quitar Admin
+            </button>
+          )}
+
+          {/* BOTÓN 3: Eliminar Usuario */}
+          {u.id !== usuarioActual?.id && !esEspectadorSuperAdmin && (
+            <button
+              onClick={() => handleEliminarUsuario(u.id, correo)}
+              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 text-xs font-semibold rounded-lg transition duration-150 flex items-center gap-1 cursor-pointer"
+            >
+              <span>🗑️</span> Eliminar
+            </button>
+          )}
         </div>
       </div>
     );

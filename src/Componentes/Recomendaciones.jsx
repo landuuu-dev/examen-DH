@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import BotonFavorito from "../componentesEstaticos/BotonFavorito";
 import { useFavoritos } from "../hooks/UseFavoritos";
 import { inscribirseATour, desinscribirseDeTour } from "../hooks/TourService";
+import VistaEnDetalleRecomendaciones from "./VistaEnDetalleRecomendaciones";
 
 function Recomendaciones({ usuario, token }) {
   const { favoritosIds, toggleFavorito } = useFavoritos(usuario, token);
@@ -11,17 +12,80 @@ function Recomendaciones({ usuario, token }) {
   const toursPerPage = 10;
   const [loading, setLoading] = useState(true);
   const [tourSeleccionado, setTourSeleccionado] = useState(null);
-  const [verTodasImagenes, setVerTodasImagenes] = useState(false);
 
-  // Estado para controlar la inscripción en curso y la lista de IDs inscriptos
   const [inscribiendoId, setInscribiendoId] = useState(null);
   const [misInscripciones, setMisInscripciones] = useState([]);
 
   const BACKEND_URL = "https://backend-examen-dh.onrender.com";
 
-  // Función auxiliar para formatear la URL de las imágenes
+  // Formateador robusto compatible con "DD-MM-YYYY" e ISO
+  const formatearFecha = (fechaStr) => {
+    if (!fechaStr) return null;
+    try {
+      if (typeof fechaStr === "string" && fechaStr.includes("-")) {
+        const partes = fechaStr.split("-");
+        let dia, mes, anio;
+        if (partes[0].length === 2) {
+          [dia, mes, anio] = partes;
+        } else {
+          [anio, mes, dia] = partes;
+        }
+        const fechaObj = new Date(Number(anio), Number(mes) - 1, Number(dia));
+        return fechaObj.toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+      }
+
+      const d = new Date(fechaStr);
+      if (isNaN(d.getTime())) return fechaStr;
+
+      return d.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return fechaStr;
+    }
+  };
+
+  const obtenerFechasTour = (tour) => {
+    if (!tour) return "Fecha no especificada";
+
+    const inicioRaw =
+      tour.fechaInicio || tour.fecha_inicio || tour.fechaDesde || tour.fecha;
+
+    const finRaw =
+      tour.fechaFin ||
+      tour.fecha_fin ||
+      tour.fechaHasta ||
+      tour.fechaFinal ||
+      tour.fechaTermino;
+
+    const inicio = formatearFecha(inicioRaw);
+    const fin = formatearFecha(finRaw);
+
+    if (inicio && fin && inicio !== fin) return `${inicio} - ${fin}`;
+    if (inicio) return inicio;
+    if (fin) return fin;
+    if (typeof tour.fechas === "string") return tour.fechas;
+
+    return "Fechas a confirmar";
+  };
+
+  const obtenerCuposTour = (tour) => {
+    if (!tour) return null;
+    if (tour.cuposDisponibles !== undefined) return tour.cuposDisponibles;
+    if (tour.disponibles !== undefined) return tour.disponibles;
+    if (tour.cupos !== undefined) return tour.cupos;
+    if (tour.capacidad !== undefined) return tour.capacidad;
+    return null;
+  };
+
   const getImagenUrl = (img) => {
-    if (!img) return "";
+    if (!img) return "https://via.placeholder.com/300x200?text=Sin+Imagen";
 
     if (typeof img === "string") {
       if (img.startsWith("http://") || img.startsWith("https://")) {
@@ -37,10 +101,9 @@ function Recomendaciones({ usuario, token }) {
       return `${BACKEND_URL}${img.url.startsWith("/") ? "" : "/"}${img.url}`;
     }
 
-    return "";
+    return "https://via.placeholder.com/300x200?text=Sin+Imagen";
   };
 
-  // Cargar tours al montar el componente
   useEffect(() => {
     fetch(`${BACKEND_URL}/tours`)
       .then((res) => (res.ok ? res.json() : []))
@@ -63,9 +126,7 @@ function Recomendaciones({ usuario, token }) {
       });
   }, []);
 
-  // 🔴 CARGAR INSCRIPCIONES CON VALIDACIÓN DEFENSIVA
   useEffect(() => {
-    // Si no hay token válido o no hay usuario, resetea el estado y no hace la petición
     if (!usuario || !token || token === "undefined" || token === "null") {
       setMisInscripciones([]);
       return;
@@ -77,18 +138,9 @@ function Recomendaciones({ usuario, token }) {
         "Content-Type": "application/json",
       },
     })
-      .then((res) => {
-        if (!res.ok) {
-          console.warn(
-            `El backend devolvió ${res.status} en /usuarios/me/inscripciones`,
-          );
-          return [];
-        }
-        return res.json();
-      })
+      .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         if (Array.isArray(data)) {
-          // Extrae el ID independientemente de si viene como 'id' o '_id'
           const ids = data.map((t) => t.id || t._id).filter(Boolean);
           setMisInscripciones(ids);
         } else {
@@ -101,9 +153,8 @@ function Recomendaciones({ usuario, token }) {
       });
   }, [usuario, token]);
 
-  // Función para manejar Inscribirse / Desinscribirse usando TourService
   const handleToggleInscripcion = async (e, tourId) => {
-    e.stopPropagation(); // Evita abrir el detalle si se hace clic desde la tarjeta
+    e.stopPropagation();
 
     if (!usuario || !token) {
       alert("Debes iniciar sesión para inscribirte en un tour.");
@@ -117,7 +168,7 @@ function Recomendaciones({ usuario, token }) {
       if (estaInscripto) {
         const mensaje = await desinscribirseDeTour(tourId, token);
         setMisInscripciones((prev) => prev.filter((id) => id !== tourId));
-        alert(mensaje || "Te has desinscripto del tour correctamente.");
+        alert(mensaje || "Te has desinscrito del tour correctamente.");
       } else {
         const mensaje = await inscribirseATour(tourId, token);
         setMisInscripciones((prev) => [...prev, tourId]);
@@ -159,7 +210,23 @@ function Recomendaciones({ usuario, token }) {
     );
   }
 
-  // Cálculos de paginación
+  // Si hay un tour seleccionado, delegamos la renderización al componente de detalle
+  if (tourSeleccionado) {
+    return (
+      <VistaEnDetalleRecomendaciones
+        tour={tourSeleccionado}
+        onVolver={() => setTourSeleccionado(null)}
+        misInscripciones={misInscripciones}
+        inscribiendoId={inscribiendoId}
+        onToggleInscripcion={handleToggleInscripcion}
+        getImagenUrl={getImagenUrl}
+        obtenerFechasTour={obtenerFechasTour}
+        obtenerCuposTour={obtenerCuposTour}
+      />
+    );
+  }
+
+  // Paginación
   const indexOfLastTour = currentPage * toursPerPage;
   const indexOfFirstTour = indexOfLastTour - toursPerPage;
   const currentTours = tours.slice(indexOfFirstTour, indexOfLastTour);
@@ -171,158 +238,8 @@ function Recomendaciones({ usuario, token }) {
   const goToFirst = () => setCurrentPage(1);
   const goToLast = () => setCurrentPage(totalPages);
 
-  // === VISTA DE DETALLE DEL TOUR SELECCIONADO (PÚBLICA CON INSCRIPCIÓN) ===
-  if (tourSeleccionado) {
-    const imagenes =
-      tourSeleccionado.imagenes || tourSeleccionado.imagenesUrl || [];
-    const idActual = tourSeleccionado.id || tourSeleccionado._id;
-    const estaInscripto = misInscripciones.includes(idActual);
-    const estaCargando = inscribiendoId === idActual;
-
-    return (
-      <div className="p-4 md:p-8 max-w-6xl mx-auto mt-6">
-        {/* Encabezado y Volver */}
-        <div className="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-bold text-slate-800">
-                {tourSeleccionado.nombre}
-              </h2>
-              {tourSeleccionado.nombreCategoria && (
-                <span className="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full">
-                  {tourSeleccionado.nombreCategoria}
-                </span>
-              )}
-            </div>
-            <p className="text-slate-500 text-sm mt-1">
-              📍 {tourSeleccionado.ubicacion || "Ubicación no especificada"}
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              setTourSeleccionado(null);
-              setVerTodasImagenes(false);
-            }}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition"
-          >
-            ← Volver a recomendaciones
-          </button>
-        </div>
-
-        {/* Descripción, Precio y Botón de Inscripción */}
-        <div className="mb-6 bg-slate-50 p-6 rounded-xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-slate-600 leading-relaxed md:w-2/3">
-            {tourSeleccionado.descripcion}
-          </p>
-
-          <div className="flex flex-col items-end gap-3 w-full md:w-auto shrink-0 border-t md:border-t-0 md:border-l border-slate-200 pt-4 md:pt-0 md:pl-6">
-            <div className="text-right">
-              <span className="text-sm text-slate-400 block">
-                Precio por persona
-              </span>
-              <span className="text-3xl font-bold text-indigo-600">
-                ${tourSeleccionado.precio}
-              </span>
-            </div>
-
-            {/* BOTÓN PRINCIPAL DE INSCRIPCIÓN */}
-            <button
-              onClick={(e) => handleToggleInscripcion(e, idActual)}
-              disabled={estaCargando}
-              className={`w-full md:w-auto px-6 py-3 font-semibold rounded-xl transition shadow-md flex items-center justify-center gap-2 ${
-                estaInscripto
-                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                  : "bg-indigo-600 hover:bg-indigo-700 text-white"
-              } disabled:opacity-50`}
-            >
-              {estaCargando ? (
-                <span>Procesando...</span>
-              ) : estaInscripto ? (
-                <>
-                  <span>✓ Inscripto</span>
-                  <span className="text-xs opacity-80">
-                    (Haz clic para cancelar)
-                  </span>
-                </>
-              ) : (
-                <span>🎟️ Inscribirme al tour</span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Galería de Imágenes */}
-        {imagenes.length > 0 ? (
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="md:w-1/2">
-              <img
-                src={getImagenUrl(imagenes[0])}
-                alt={tourSeleccionado.nombre}
-                className="w-full h-80 md:h-[400px] object-cover rounded-2xl shadow-md"
-              />
-            </div>
-
-            <div className="md:w-1/2 grid grid-cols-2 gap-2 relative">
-              {imagenes.slice(1, 5).map((img, i) => (
-                <img
-                  key={i}
-                  src={getImagenUrl(img)}
-                  alt={`${tourSeleccionado.nombre} miniatura ${i + 1}`}
-                  className="w-full h-36 md:h-48 object-cover rounded-xl shadow-sm"
-                />
-              ))}
-
-              {imagenes.length > 5 && (
-                <button
-                  onClick={() => setVerTodasImagenes(true)}
-                  className="col-span-2 py-3 bg-slate-900/80 hover:bg-slate-900 text-white text-center font-semibold rounded-xl transition backdrop-blur-sm"
-                >
-                  Ver todas las fotos ({imagenes.length})
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="p-8 text-center bg-slate-100 rounded-xl text-slate-400">
-            No hay imágenes disponibles para este tour.
-          </div>
-        )}
-
-        {/* Modal de Todas las Imágenes */}
-        {verTodasImagenes && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-5xl my-8 max-h-[90vh] flex flex-col">
-              <div className="flex justify-between items-center mb-4 border-b pb-3">
-                <h3 className="text-xl font-bold text-slate-800">
-                  Todas las imágenes ({imagenes.length})
-                </h3>
-                <button
-                  onClick={() => setVerTodasImagenes(false)}
-                  className="text-slate-400 hover:text-slate-600 font-bold text-2xl px-2"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 overflow-y-auto p-2">
-                {imagenes.map((img, i) => (
-                  <img
-                    key={i}
-                    src={getImagenUrl(img)}
-                    alt={`${tourSeleccionado.nombre} ${i + 1}`}
-                    className="w-full h-56 object-cover rounded-xl shadow"
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // === VISTA PRINCIPAL (LISTADO DE TOURS ALEATORIOS) ===
   return (
-    <div className="p-6 max-w-7xl mx-auto mt-12">
+    <div className="p-6 max-w-7xl mx-auto mt-6">
       <h2 className="text-3xl font-bold text-center mb-8 text-indigo-700">
         Recomendaciones
       </h2>
@@ -333,90 +250,113 @@ function Recomendaciones({ usuario, token }) {
         </p>
       ) : (
         <>
-          {/* Tarjetas Públicas de Tours */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-            {currentTours.map((tour) => {
-              const tourId = tour.id || tour._id;
-              const listaImagenes = tour.imagenes || tour.imagenesUrl || [];
-              const primeraImagen =
-                listaImagenes.length > 0
-                  ? getImagenUrl(listaImagenes[0])
-                  : null;
+            {currentTours.map((tour, index) => {
+              const tourId = tour.id || tour._id || index;
               const estaInscripto = misInscripciones.includes(tourId);
               const estaCargando = inscribiendoId === tourId;
 
+              const nombre = tour.nombre || tour.titulo || "Tour sin título";
+              const descripcion =
+                tour.descripcion || "Sin descripción disponible.";
+              const precio = tour.precio ?? 0;
+              const ubicacion = tour.ubicacion || tour.destino || "General";
+              const categoriaNombre =
+                tour.categoria?.nombre || tour.nombreCategoria;
+
+              const fechasTexto = obtenerFechasTour(tour);
+              const cuposDisponibles = obtenerCuposTour(tour);
+
+              const imagenesList = Array.isArray(tour.imagenes)
+                ? tour.imagenes
+                : typeof tour.imagenes === "string"
+                  ? [tour.imagenes]
+                  : Array.isArray(tour.imagenesUrl)
+                    ? tour.imagenesUrl
+                    : [];
+              const imagenFinal = getImagenUrl(imagenesList[0]);
+
               return (
                 <div
-                  key={tourId}
+                  key={`rec-tour-${tourId}-${index}`}
                   onClick={() => setTourSeleccionado(tour)}
-                  className="bg-white shadow-xs hover:shadow-xl rounded-2xl p-5 border border-slate-200 hover:border-indigo-200 transition-all duration-300 cursor-pointer flex flex-col justify-between group"
+                  className="group bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden cursor-pointer"
                 >
-                  <div>
-                    <div className="relative overflow-hidden rounded-xl mb-4 h-48 bg-slate-100">
-                      {primeraImagen ? (
-                        <img
-                          src={primeraImagen}
-                          alt={tour.nombre}
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                          Sin Imagen
-                        </div>
-                      )}
+                  <div className="relative h-48 w-full overflow-hidden bg-slate-100">
+                    <img
+                      src={imagenFinal}
+                      alt={nombre}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
 
-                      {/* Categoría arriba a la derecha */}
-                      {tour.nombreCategoria && (
-                        <span className="absolute top-3 right-3 bg-indigo-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow-xs">
-                          {tour.nombreCategoria}
-                        </span>
-                      )}
+                    {categoriaNombre && (
+                      <span className="absolute top-3 left-3 bg-slate-900/90 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-xs z-10">
+                        {categoriaNombre}
+                      </span>
+                    )}
 
-                      {/* BOTÓN DE FAVORITO (Arriba a la izquierda) */}
-                      <div className="absolute top-3 left-3 z-10">
-                        <BotonFavorito
-                          tourId={tourId}
-                          esFavorito={favoritosIds.includes(tourId)}
-                          onToggle={toggleFavorito}
-                        />
+                    <div className="absolute top-3 right-3 z-10">
+                      <BotonFavorito
+                        tourId={tourId}
+                        esFavorito={favoritosIds.includes(tourId)}
+                        onToggle={toggleFavorito}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <h4 className="font-bold text-slate-900 text-lg leading-snug line-clamp-1 group-hover:text-indigo-600 transition">
+                        {nombre}
+                      </h4>
+                      <p className="text-slate-600 text-sm line-clamp-2 leading-relaxed">
+                        {descripcion}
+                      </p>
+
+                      <div className="pt-2 text-xs font-semibold text-slate-500 space-y-1 border-t border-slate-100">
+                        <p>
+                          📍 <span className="capitalize">{ubicacion}</span>
+                        </p>
+                        <p className="text-indigo-600">📅 {fechasTexto}</p>
+                        {cuposDisponibles !== null && (
+                          <p className="text-amber-700">
+                            👥 {cuposDisponibles} cupos restantes
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    <h3 className="text-xl font-bold text-slate-800 group-hover:text-indigo-600 transition mb-2">
-                      {tour.nombre}
-                    </h3>
-
-                    <p className="text-slate-600 text-sm mb-4 line-clamp-2">
-                      {tour.descripcion}
-                    </p>
-                  </div>
-
-                  {/* Pie de la tarjeta con precio y botón rápido de inscripción */}
-                  <div className="border-t border-slate-100 pt-3 flex items-center justify-between gap-2 mt-2">
-                    <div>
-                      <span className="text-xs text-slate-400 block">
-                        📍 {tour.ubicacion || "General"}
-                      </span>
-                      <span className="font-bold text-indigo-600 text-lg">
-                        ${tour.precio}
-                      </span>
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-slate-500 block font-medium">
+                          Precio
+                        </span>
+                        <span className="text-lg font-bold text-slate-900">
+                          ${precio} USD
+                        </span>
+                      </div>
                     </div>
 
-                    {/* BOTÓN RÁPIDO EN LA TARJETA */}
                     <button
                       onClick={(e) => handleToggleInscripcion(e, tourId)}
                       disabled={estaCargando}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition shadow-xs ${
+                      className={`w-full py-2.5 px-4 rounded-xl font-bold text-sm transition duration-150 cursor-pointer flex items-center justify-center gap-2 ${
                         estaInscripto
-                          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                          : "bg-indigo-600 text-white hover:bg-indigo-700"
-                      } disabled:opacity-50`}
+                          ? "bg-slate-100 hover:bg-rose-50 text-rose-700 border border-slate-200 hover:border-rose-300"
+                          : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
+                      } ${estaCargando ? "opacity-60 cursor-not-allowed" : ""}`}
                     >
-                      {estaCargando
-                        ? "..."
-                        : estaInscripto
-                          ? "✓ Inscripto"
-                          : "Inscribirme"}
+                      {estaCargando ? (
+                        <span>Procesando...</span>
+                      ) : estaInscripto ? (
+                        <>
+                          <span>✓</span> Inscrito (Cancelar)
+                        </>
+                      ) : (
+                        <>
+                          <span>🎟️</span> Inscribirme
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -424,13 +364,13 @@ function Recomendaciones({ usuario, token }) {
             })}
           </div>
 
-          {/* Controles de Paginación */}
+          {/* Paginación */}
           {totalPages > 1 && (
             <div className="flex flex-wrap justify-center items-center gap-2 pt-4 border-t border-slate-200">
               <button
                 onClick={goToFirst}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition"
+                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition cursor-pointer"
               >
                 ⏮️ Inicio
               </button>
@@ -438,7 +378,7 @@ function Recomendaciones({ usuario, token }) {
               <button
                 onClick={prevPage}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition"
+                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition cursor-pointer"
               >
                 ◀️ Anterior
               </button>
@@ -452,7 +392,7 @@ function Recomendaciones({ usuario, token }) {
               <button
                 onClick={nextPage}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition"
+                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition cursor-pointer"
               >
                 Siguiente ▶️
               </button>
@@ -460,7 +400,7 @@ function Recomendaciones({ usuario, token }) {
               <button
                 onClick={goToLast}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition"
+                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition cursor-pointer"
               >
                 ⏭️ Final
               </button>

@@ -116,7 +116,6 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
       );
 
       if (res.ok) {
-        // Remover de la lista local en el modal
         setListaInscritos((prev) =>
           prev.filter((item) => (item.id || item.usuarioId) !== inscritoId),
         );
@@ -144,7 +143,7 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
     }
   };
 
-  const formatearFecha = (fechaIso) => {
+  const formatearFechaIso = (fechaIso) => {
     if (!fechaIso) return null;
     try {
       return new Intl.DateTimeFormat("es-ES", {
@@ -155,6 +154,14 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
     } catch {
       return null;
     }
+  };
+
+  // Helper para formatear fechas tipo YYYY-MM-DD
+  const formatearFechaSimple = (fechaStr) => {
+    if (!fechaStr) return null;
+    const [year, month, day] = fechaStr.split("-");
+    if (!year || !month || !day) return fechaStr;
+    return `${day}/${month}/${year}`;
   };
 
   // Skeleton Loader si no hay datos
@@ -192,6 +199,9 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
   const tituloTour = data.nombre || data.title || "Tour sin título";
   const descripcionTour = data.descripcion || "Sin descripción disponible.";
 
+  const fechaInicioFormatted = formatearFechaSimple(data.fechaInicio);
+  const fechaFinFormatted = formatearFechaSimple(data.fechaFin);
+
   return (
     <>
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col justify-between group h-full">
@@ -219,21 +229,21 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
               #{String(data.id || "").slice(-4)}
             </span>
 
-            {data.categoriaNombre && (
+            {(data.categoriaNombre || data.nombreCategoria) && (
               <span className="absolute top-3 left-3 px-2.5 py-1 bg-amber-500/90 text-white text-xs font-medium rounded-full shadow-xs">
-                {data.categoriaNombre}
+                {data.categoriaNombre || data.nombreCategoria}
               </span>
             )}
           </div>
 
           {/* Contenido */}
-          <div className="p-5">
-            <h3 className="text-xl font-bold text-slate-900 capitalize line-clamp-1 mb-2">
+          <div className="p-5 space-y-3">
+            <h3 className="text-xl font-bold text-slate-900 capitalize line-clamp-1">
               {tituloTour}
             </h3>
 
             {/* Badge de Inscritos */}
-            <div className="mb-3">
+            <div>
               <button
                 type="button"
                 onClick={() => totalInscritos > 0 && setModalAbierto(true)}
@@ -263,15 +273,50 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
               </button>
             </div>
 
-            <p className="text-slate-600 text-sm line-clamp-3 mb-4 leading-relaxed">
+            <p className="text-slate-600 text-sm line-clamp-3 leading-relaxed">
               {descripcionTour}
             </p>
+
+            {/* 📅 FECHAS DE DISPONIBILIDAD */}
+            {(fechaInicioFormatted || fechaFinFormatted) && (
+              <div className="pt-1 flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+                <span>📅</span>
+                <span>
+                  {fechaInicioFormatted && fechaFinFormatted
+                    ? `Disponible: ${fechaInicioFormatted} - ${fechaFinFormatted}`
+                    : fechaInicioFormatted
+                      ? `Desde: ${fechaInicioFormatted}`
+                      : `Hasta: ${fechaFinFormatted}`}
+                </span>
+              </div>
+            )}
+
+            {/* 🎟️ CUPOS DISPONIBLES */}
+            {data.cuposDisponibles !== undefined && (
+              <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span>🎟️</span>
+                <span>{data.cuposDisponibles} cupos disponibles</span>
+              </div>
+            )}
+
+            {/* 💵 PRECIO EN USD */}
+            {data.precio !== undefined && (
+              <div className="pt-2 border-t border-slate-100 flex items-baseline gap-1">
+                <span className="text-xs text-slate-400 font-normal">
+                  Precio:
+                </span>
+                <span className="text-xl font-extrabold text-indigo-600">
+                  ${data.precio}
+                </span>
+                <span className="text-xs font-bold text-indigo-600">USD</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Botones Modificar/Eliminar */}
         {(onEdit || onDelete) && (
-          <div className="p-5 pt-0 grid grid-cols-2 gap-2.5">
+          <div className="p-5 pt-0 grid grid-cols-2 gap-2.5 mt-4">
             {onEdit && (
               <button
                 onClick={() => onEdit(data)}
@@ -332,7 +377,9 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
                       ? correo.split("@")[0]
                       : `Inscrito #${index + 1}`;
 
-                  const fechaFormatted = formatearFecha(item.fechaInscripcion);
+                  const fechaFormatted = formatearFechaIso(
+                    item.fechaInscripcion,
+                  );
                   const itemId = item.id || item.usuarioId || index;
 
                   return (
@@ -368,7 +415,7 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
                           {correoCopiado === correo ? "✓" : "📋"}
                         </button>
 
-                        {/* 🎯 BOTÓN QUITAR: Solo visible para ADMIN y SUPER_ADMIN */}
+                        {/* BOTÓN QUITAR: Solo visible para ADMIN y SUPER_ADMIN */}
                         {esAdmin && (
                           <button
                             onClick={() => handleDesinscribirUsuario(item)}

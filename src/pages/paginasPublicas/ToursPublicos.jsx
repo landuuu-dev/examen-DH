@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import BarraBusqueda from "../../Componentes/BarraBusqueda"; // Ajusta la ruta según tu estructura
+import BarraBusqueda from "../../Componentes/BarraBusqueda";
 import BotonFavorito from "../../componentesEstaticos/BotonFavorito";
 import { useFavoritos } from "../../hooks/UseFavoritos";
 
 export default function ToursPublicos({ usuario, token }) {
-  // 1. Hook de favoritos para conectarlo con el backend
+  // Hook de favoritos para conectarlo con el backend
   const { favoritosIds, toggleFavorito } = useFavoritos(usuario, token);
 
   const [tours, setTours] = useState([]);
@@ -28,6 +28,64 @@ export default function ToursPublicos({ usuario, token }) {
       return `${BACKEND_URL}${img.url.startsWith("/") ? "" : "/"}${img.url}`;
     }
     return "";
+  };
+
+  // Formateador robusto compatible con "DD-MM-YYYY" e ISO
+  const formatearFecha = (fechaStr) => {
+    if (!fechaStr) return null;
+    try {
+      if (typeof fechaStr === "string" && fechaStr.includes("-")) {
+        const partes = fechaStr.split("-");
+        let dia, mes, anio;
+        if (partes[0].length === 2) {
+          // Formato DD-MM-YYYY (Spring Boot DTO @JsonFormat)
+          [dia, mes, anio] = partes;
+        } else {
+          // Formato YYYY-MM-DD (ISO)
+          [anio, mes, dia] = partes;
+        }
+        const fechaObj = new Date(Number(anio), Number(mes) - 1, Number(dia));
+        if (isNaN(fechaObj.getTime())) return fechaStr;
+
+        return fechaObj.toLocaleDateString("es-ES", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+      }
+
+      const d = new Date(fechaStr);
+      if (isNaN(d.getTime())) return fechaStr;
+
+      return d.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return fechaStr;
+    }
+  };
+
+  // Obtener texto unificado para rango de fechas
+  const obtenerFechasTour = (tour) => {
+    if (!tour) return "Fecha no especificada";
+
+    const inicioRaw = tour.fechaInicio || tour.fecha_inicio || tour.fecha;
+    const finRaw =
+      tour.fechaFin || tour.fecha_fin || tour.fechaHasta || tour.fechaTermino;
+
+    const inicio = formatearFecha(inicioRaw);
+    const fin = formatearFecha(finRaw);
+
+    if (inicio && fin && inicio !== fin) {
+      return `${inicio} - ${fin}`;
+    }
+
+    if (inicio) return inicio;
+    if (fin) return fin;
+
+    return "Fechas a confirmar";
   };
 
   const obtenerTours = async () => {
@@ -128,6 +186,8 @@ export default function ToursPublicos({ usuario, token }) {
                   ? getImagenUrl(listaImagenes[0])
                   : null;
 
+              const fechasTexto = obtenerFechasTour(tour);
+
               return (
                 <div
                   key={tour.id}
@@ -154,7 +214,7 @@ export default function ToursPublicos({ usuario, token }) {
                       </span>
                     )}
 
-                    {/* 🔴 BOTÓN DE FAVORITO (Arriba a la izquierda) */}
+                    {/* BOTÓN DE FAVORITO */}
                     <div className="absolute top-3 left-3 z-10">
                       <BotonFavorito
                         tourId={tour.id}
@@ -166,26 +226,47 @@ export default function ToursPublicos({ usuario, token }) {
 
                   {/* Contenido principal */}
                   <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-bold text-slate-900">
                         {tour.nombre}
                       </h3>
+
                       <p className="text-slate-600 text-sm line-clamp-2">
                         {tour.descripcion}
                       </p>
+
+                      {/* 📅 FECHAS DE DISPONIBILIDAD (INICIO - FIN) */}
+                      <div className="pt-2 flex items-center gap-1.5 text-xs text-indigo-600 font-semibold">
+                        <span>📅</span>
+                        <span>{fechasTexto}</span>
+                      </div>
+
+                      {/* 👥 CUPOS DISPONIBLES */}
+                      {tour.cuposDisponibles !== undefined && (
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                          <span>🎟️</span>
+                          <span>{tour.cuposDisponibles} cupos disponibles</span>
+                        </div>
+                      )}
                     </div>
 
+                    {/* Pie de tarjeta con PRECIO EN USD */}
                     <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                       <div>
                         <span className="text-xs text-slate-400 block">
-                          Precio
+                          Precio por persona
                         </span>
-                        <span className="text-2xl font-extrabold text-indigo-600">
-                          ${tour.precio}
-                        </span>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-extrabold text-indigo-600">
+                            ${tour.precio}
+                          </span>
+                          <span className="text-xs font-bold text-indigo-600">
+                            USD
+                          </span>
+                        </div>
                       </div>
 
-                      <button className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl transition-colors">
+                      <button className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer">
                         Ver detalle
                       </button>
                     </div>
