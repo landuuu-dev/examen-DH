@@ -9,8 +9,49 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
   const [cargandoInscritos, setCargandoInscritos] = useState(true);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [correoCopiado, setCorreoCopiado] = useState(null);
+  const [usuarioLogueado, setUsuarioLogueado] = useState(null);
+  const [eliminandoId, setEliminandoId] = useState(null);
 
   const BACKEND_URL = "https://backend-examen-dh.onrender.com";
+
+  // Cargar información del usuario activo para validar roles
+  useEffect(() => {
+    const userStorage = localStorage.getItem("usuario");
+    if (userStorage) {
+      try {
+        setUsuarioLogueado(JSON.parse(userStorage));
+      } catch (e) {
+        console.error("Error al parsear el usuario logueado:", e);
+      }
+    }
+  }, []);
+
+  // Verificar si es ADMIN o SUPER_ADMIN
+  const esAdmin =
+    usuarioLogueado?.rol === "ADMIN" ||
+    usuarioLogueado?.rol === "SUPER_ADMIN" ||
+    usuarioLogueado?.rol === "ROLE_ADMIN" ||
+    usuarioLogueado?.rol === "ROLE_SUPER_ADMIN" ||
+    usuarioLogueado?.role === "ADMIN" ||
+    usuarioLogueado?.role === "SUPER_ADMIN";
+
+  // Obtener Token
+  const obtenerToken = () => {
+    const tokenDirecto =
+      localStorage.getItem("token") || localStorage.getItem("jwt");
+    if (tokenDirecto) return tokenDirecto;
+
+    const usuarioStorage = localStorage.getItem("usuario");
+    if (usuarioStorage) {
+      try {
+        const parsed = JSON.parse(usuarioStorage);
+        return parsed.token || parsed.jwt || null;
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  };
 
   // 2. Fetch automático de inscritos por ID del Tour
   useEffect(() => {
@@ -18,7 +59,7 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
 
     const obtenerInscritos = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = obtenerToken();
 
         const res = await fetch(`${BACKEND_URL}/tours/${data.id}/inscritos`, {
           headers: {
@@ -42,6 +83,55 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
 
     obtenerInscritos();
   }, [data?.id]);
+
+  // 3. Función para desinscribir/quitar usuario desde el Admin
+  const handleDesinscribirUsuario = async (inscrito) => {
+    const correoUsuario =
+      inscrito.nombreUsuario ||
+      inscrito.usuarioCorreo ||
+      inscrito.correo ||
+      inscrito.email ||
+      "este usuario";
+
+    const confirmar = window.confirm(
+      `¿Estás seguro de que deseas quitar a ${correoUsuario} de este tour?`,
+    );
+    if (!confirmar) return;
+
+    const inscritoId = inscrito.id || inscrito.usuarioId || inscrito.idUsuario;
+    setEliminandoId(inscritoId);
+
+    try {
+      const token = obtenerToken();
+
+      const res = await fetch(
+        `${BACKEND_URL}/tours/${data.id}/desinscribirse`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (res.ok) {
+        // Remover de la lista local en el modal
+        setListaInscritos((prev) =>
+          prev.filter((item) => (item.id || item.usuarioId) !== inscritoId),
+        );
+        setTotalInscritos((prev) => Math.max(0, prev - 1));
+        alert("Usuario removido del tour exitosamente.");
+      } else {
+        alert(`No se pudo quitar al usuario. Código: ${res.status}`);
+      }
+    } catch (err) {
+      console.error("Error al quitar inscrito:", err);
+      alert("Error de conexión al intentar desinscribir.");
+    } finally {
+      setEliminandoId(null);
+    }
+  };
 
   const copiarAlPortapapeles = async (texto) => {
     if (!texto) return;
@@ -230,7 +320,6 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
                 </p>
               ) : (
                 listaInscritos.map((item, index) => {
-                  // Mapeo directo al JSON de tu backend (nombreUsuario contiene el email)
                   const correo =
                     item.nombreUsuario ||
                     item.usuarioCorreo ||
@@ -244,10 +333,11 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
                       : `Inscrito #${index + 1}`;
 
                   const fechaFormatted = formatearFecha(item.fechaInscripcion);
+                  const itemId = item.id || item.usuarioId || index;
 
                   return (
                     <div
-                      key={item.id || index}
+                      key={itemId}
                       className="py-3 flex items-center justify-between gap-3 first:pt-0 last:pb-0"
                     >
                       <div className="min-w-0 flex-1">
@@ -264,17 +354,35 @@ export default function CardTour({ tourData, tour, onDelete, onEdit }) {
                         )}
                       </div>
 
-                      <button
-                        onClick={() => copiarAlPortapapeles(correo)}
-                        title="Copiar correo"
-                        className={`p-2 rounded-lg border transition duration-150 flex items-center justify-center cursor-pointer ${
-                          correoCopiado === correo
-                            ? "bg-emerald-50 border-emerald-200 text-emerald-600"
-                            : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
-                        }`}
-                      >
-                        {correoCopiado === correo ? "✓" : "📋"}
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Botón de copiar correo */}
+                        <button
+                          onClick={() => copiarAlPortapapeles(correo)}
+                          title="Copiar correo"
+                          className={`p-2 rounded-lg border transition duration-150 flex items-center justify-center cursor-pointer ${
+                            correoCopiado === correo
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+                          }`}
+                        >
+                          {correoCopiado === correo ? "✓" : "📋"}
+                        </button>
+
+                        {/* 🎯 BOTÓN QUITAR: Solo visible para ADMIN y SUPER_ADMIN */}
+                        {esAdmin && (
+                          <button
+                            onClick={() => handleDesinscribirUsuario(item)}
+                            disabled={eliminandoId === itemId}
+                            title="Quitar usuario del tour"
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 text-xs font-semibold rounded-lg transition duration-150 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            <span>🗑️</span>
+                            <span>
+                              {eliminandoId === itemId ? "..." : "Quitar"}
+                            </span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })

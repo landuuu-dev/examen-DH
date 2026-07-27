@@ -3,18 +3,22 @@ import TourForm from "./Tour/TourForm";
 import CategoriasForm from "./categoria/CategoriasForm";
 import ListaCategorias from "./categoria/ListaCategorias";
 import ListaTours from "./Tour/ListaTours";
+import ListaUsuarios from "./usuarios/ListaUsuarios";
 
 function HeaderAdmin() {
   const [activeComponent, setActiveComponent] = useState("Crear tour");
   const [openDropdown, setOpenDropdown] = useState(null);
 
+  // Mapeo de componentes según la opción seleccionada
   const componentsMap = {
     "Crear tour": <TourForm />,
     "Lista Tours": <ListaTours />,
     "Crear Categoría": <CategoriasForm />,
     "Lista Categorías": <ListaCategorias />,
+    "Lista Usuarios": <ListaUsuarios />,
   };
 
+  // Ítems de navegación principal con submenús
   const menuItems = [
     {
       title: "Tours",
@@ -23,6 +27,10 @@ function HeaderAdmin() {
     {
       title: "Categorías",
       options: ["Crear Categoría", "Lista Categorías"],
+    },
+    {
+      title: "Usuarios",
+      options: ["Lista Usuarios"],
     },
   ];
 
