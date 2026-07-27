@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from "react";
-import Logo from "./Logo";
+
+import Logo from "../Logo/Logo";
+
 import { Link, useNavigate } from "react-router-dom";
 
 function Header() {
   const [isOpen, setIsOpen] = useState(false);
+
   const [isAuth, setIsAuth] = useState(false);
+
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
   const navigate = useNavigate();
 
   const comprobarSesion = () => {
     const token = localStorage.getItem("token");
+
     const usuarioStorage = localStorage.getItem("usuario");
 
     setIsAuth(!!token);
@@ -17,7 +23,9 @@ function Header() {
     if (token && usuarioStorage) {
       try {
         const usuario = JSON.parse(usuarioStorage);
+
         // Validamos el rol considerando distintas variaciones habituales de backend
+
         const esAdmin =
           usuario?.rol === "SUPER_ADMIN" ||
           usuario?.rol === "ADMIN" ||
@@ -29,6 +37,7 @@ function Header() {
         setIsSuperAdmin(Boolean(esAdmin));
       } catch (error) {
         console.error("Error al parsear el usuario del localStorage:", error);
+
         setIsSuperAdmin(false);
       }
     } else {
@@ -40,23 +49,31 @@ function Header() {
     comprobarSesion();
 
     const handleStorageChange = () => comprobarSesion();
+
     window.addEventListener("storage", handleStorageChange);
+
     window.addEventListener("loginStateChange", handleStorageChange);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
+
       window.removeEventListener("loginStateChange", handleStorageChange);
     };
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+
     localStorage.removeItem("usuario");
+
     setIsAuth(false);
+
     setIsSuperAdmin(false);
+
     setIsOpen(false);
 
     window.dispatchEvent(new Event("loginStateChange"));
+
     navigate("/iniciar-sesion");
   };
 
@@ -65,6 +82,7 @@ function Header() {
       <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-md border-b border-slate-100">
         <div className="w-full h-20 flex justify-between items-center px-6 md:px-12 max-w-7xl mx-auto">
           {/* Logo */}
+
           <Link
             to="/"
             className="flex items-center gap-2 p-1.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition"
@@ -73,6 +91,7 @@ function Header() {
           </Link>
 
           {/* Botón menú móvil */}
+
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -118,20 +137,30 @@ function Header() {
           </div>
 
           {/* Opciones del Menú */}
+
           <div
             className={`
-            absolute md:static top-20 left-0 w-full md:w-auto
-            bg-white md:bg-transparent
-            border-b border-slate-200 md:border-none p-6 md:p-0
-            flex flex-col md:flex-row items-stretch md:items-center gap-3
-            transition-all duration-200 ease-in-out shadow-xl md:shadow-none
-            ${isOpen ? "flex opacity-100" : "hidden md:flex"}
-          `}
+
+absolute md:static top-20 left-0 w-full md:w-auto
+
+bg-white md:bg-transparent
+
+border-b border-slate-200 md:border-none p-6 md:p-0
+
+flex flex-col md:flex-row items-stretch md:items-center gap-3
+
+transition-all duration-200 ease-in-out shadow-xl md:shadow-none
+
+${isOpen ? "flex opacity-100" : "hidden md:flex"}
+
+`}
           >
             {isAuth ? (
               // VISTA CON SESIÓN
+
               <>
                 {/* Botón visible únicamente para el Super Admin */}
+
                 {isSuperAdmin && (
                   <Link
                     to="/panel-admin"
@@ -139,6 +168,7 @@ function Header() {
                     className="text-center text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 font-semibold text-base px-5 py-2.5 rounded-xl border border-indigo-200/80 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition duration-150 flex items-center justify-center gap-2"
                   >
                     <span className="text-lg">🛠️</span>
+
                     <span>Panel de administración</span>
                   </Link>
                 )}
@@ -149,6 +179,7 @@ function Header() {
                   className="text-center text-slate-800 hover:text-indigo-700 bg-slate-100 hover:bg-indigo-50 font-semibold text-base px-5 py-2.5 rounded-xl border border-slate-200/80 hover:border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition duration-150 flex items-center justify-center gap-2"
                 >
                   <span className="text-lg">👤</span>
+
                   <span>Mi cuenta</span>
                 </Link>
 
@@ -161,6 +192,7 @@ function Header() {
               </>
             ) : (
               // VISTA SIN SESIÓN
+
               <>
                 <Link
                   to="/iniciar-sesion"

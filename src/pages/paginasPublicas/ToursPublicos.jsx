@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import BarraBusqueda from "../../Componentes/BarraBusqueda";
 import BotonFavorito from "../../componentesEstaticos/BotonFavorito";
 import { useFavoritos } from "../../hooks/UseFavoritos";
+import VistaEnDetalleRecomendaciones from "../../Componentes/VistaEnDetalleRecomendaciones"; // Ajusta la ruta si es necesario
 
 export default function ToursPublicos({ usuario, token }) {
   // Hook de favoritos para conectarlo con el backend
@@ -11,6 +12,13 @@ export default function ToursPublicos({ usuario, token }) {
   const [tours, setTours] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [errorApi, setErrorApi] = useState(null);
+
+  // Estado para el tour seleccionado en la vista de detalle
+  const [tourSeleccionado, setTourSeleccionado] = useState(null);
+
+  // Estados opcionales de inscripción para compatibilidad con VistaEnDetalleRecomendaciones
+  const [misInscripciones, setMisInscripciones] = useState([]);
+  const [inscribiendoId, setInscribiendoId] = useState(null);
 
   const [searchParams] = useSearchParams();
   const BACKEND_URL = "https://backend-examen-dh.onrender.com";
@@ -88,6 +96,16 @@ export default function ToursPublicos({ usuario, token }) {
     return "Fechas a confirmar";
   };
 
+  // Obtener cupos disponibles
+  const obtenerCuposTour = (tour) => {
+    if (!tour) return null;
+    if (tour.cuposDisponibles !== undefined) return tour.cuposDisponibles;
+    if (tour.disponibles !== undefined) return tour.disponibles;
+    if (tour.cupos !== undefined) return tour.cupos;
+    if (tour.capacidad !== undefined) return tour.capacidad;
+    return null;
+  };
+
   const obtenerTours = async () => {
     setCargando(true);
     setErrorApi(null);
@@ -105,8 +123,6 @@ export default function ToursPublicos({ usuario, token }) {
 
         endpoint = `${BACKEND_URL}/tours/search?${queryParams.toString()}`;
       }
-
-      console.log("Fetching desde:", endpoint);
 
       const res = await fetch(endpoint);
 
@@ -148,6 +164,35 @@ export default function ToursPublicos({ usuario, token }) {
   useEffect(() => {
     obtenerTours();
   }, [searchParams.toString()]);
+
+  // Handler para la inscripción (puedes adaptarlo según el TourService si lo utilizas aquí)
+  const handleToggleInscripcion = (e, tourId) => {
+    e.stopPropagation();
+    if (!usuario || !token) {
+      alert("Debes iniciar sesión para inscribirte en un tour.");
+      return;
+    }
+    // Lógica opcional de inscripción
+  };
+
+  // RENDERIZADO CONDICIONAL DE LA VISTA EN DETALLE
+  if (tourSeleccionado) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <BarraBusqueda />
+        <VistaEnDetalleRecomendaciones
+          tour={tourSeleccionado}
+          onVolver={() => setTourSeleccionado(null)}
+          misInscripciones={misInscripciones}
+          inscribiendoId={inscribiendoId}
+          onToggleInscripcion={handleToggleInscripcion}
+          getImagenUrl={getImagenUrl}
+          obtenerFechasTour={obtenerFechasTour}
+          obtenerCuposTour={obtenerCuposTour}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -191,7 +236,8 @@ export default function ToursPublicos({ usuario, token }) {
               return (
                 <div
                   key={tour.id}
-                  className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-slate-100 flex flex-col"
+                  onClick={() => setTourSeleccionado(tour)}
+                  className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-slate-100 flex flex-col cursor-pointer"
                 >
                   {/* Imagen principal del Tour */}
                   <div className="h-48 w-full bg-slate-200 overflow-hidden relative">
@@ -235,7 +281,7 @@ export default function ToursPublicos({ usuario, token }) {
                         {tour.descripcion}
                       </p>
 
-                      {/* 📅 FECHAS DE DISPONIBILIDAD (INICIO - FIN) */}
+                      {/* 📅 FECHAS DE DISPONIBILIDAD */}
                       <div className="pt-2 flex items-center gap-1.5 text-xs text-indigo-600 font-semibold">
                         <span>📅</span>
                         <span>{fechasTexto}</span>
@@ -266,7 +312,13 @@ export default function ToursPublicos({ usuario, token }) {
                         </div>
                       </div>
 
-                      <button className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTourSeleccionado(tour);
+                        }}
+                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-xl transition-colors cursor-pointer"
+                      >
                         Ver detalle
                       </button>
                     </div>

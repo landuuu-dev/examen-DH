@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import BotonFavorito from "../componentesEstaticos/BotonFavorito";
 import { useFavoritos } from "../hooks/UseFavoritos";
 import { inscribirseATour, desinscribirseDeTour } from "../hooks/TourService";
@@ -18,7 +18,7 @@ function Recomendaciones({ usuario, token }) {
 
   const BACKEND_URL = "https://backend-examen-dh.onrender.com";
 
-  // Formateador robusto compatible con "DD-MM-YYYY" e ISO
+  // Formateador de fechas
   const formatearFecha = (fechaStr) => {
     if (!fechaStr) return null;
     try {
@@ -53,10 +53,8 @@ function Recomendaciones({ usuario, token }) {
 
   const obtenerFechasTour = (tour) => {
     if (!tour) return "Fecha no especificada";
-
     const inicioRaw =
       tour.fechaInicio || tour.fecha_inicio || tour.fechaDesde || tour.fecha;
-
     const finRaw =
       tour.fechaFin ||
       tour.fecha_fin ||
@@ -86,23 +84,71 @@ function Recomendaciones({ usuario, token }) {
 
   const getImagenUrl = (img) => {
     if (!img) return "https://via.placeholder.com/300x200?text=Sin+Imagen";
-
     if (typeof img === "string") {
-      if (img.startsWith("http://") || img.startsWith("https://")) {
-        return img;
-      }
+      if (img.startsWith("http://") || img.startsWith("https://")) return img;
       return `${BACKEND_URL}${img.startsWith("/") ? "" : "/"}${img}`;
     }
-
     if (typeof img === "object" && img.url) {
-      if (img.url.startsWith("http://") || img.url.startsWith("https://")) {
+      if (img.url.startsWith("http://") || img.url.startsWith("https://"))
         return img.url;
-      }
       return `${BACKEND_URL}${img.url.startsWith("/") ? "" : "/"}${img.url}`;
     }
-
     return "https://via.placeholder.com/300x200?text=Sin+Imagen";
   };
+
+  // Función encargada de descargar del servidor los tours donde el usuario está inscrito
+  // Función encargada de descargar del servidor los tours donde el usuario está inscrito
+  const cargarInscripciones = useCallback(async () => {
+    if (!usuario || !token || token === "undefined" || token === "null") {
+      setMisInscripciones([]);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/usuarios/me/inscripciones`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        console.warn(
+          "No se pudieron cargar las inscripciones del servidor (HTTP " +
+            res.status +
+            "). Se mantiene el estado local actual.",
+        );
+        // NOTA: NO HACEMOS setMisInscripciones([]) AQUÍ
+        // Dejamos el estado tal como está para no perder los tours que el usuario activó en pantalla.
+        return;
+      }
+
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        const ids = data
+          .map((item) => {
+            if (typeof item === "object" && item !== null) {
+              return String(
+                item.id ||
+                  item._id ||
+                  item.tourId ||
+                  item.tour?.id ||
+                  item.tour?._id,
+              );
+            }
+            return String(item);
+          })
+          .filter((id) => id && id !== "undefined" && id !== "null");
+
+        setMisInscripciones(ids);
+      }
+    } catch (err) {
+      console.error("Error cargando inscripciones:", err);
+      // Tampoco vaciamos el estado en el catch
+    }
+  }, [usuario, token]);
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/tours`)
@@ -114,9 +160,7 @@ function Recomendaciones({ usuario, token }) {
         } else if (data && Array.isArray(data.content)) {
           listaRaw = data.content;
         }
-
-        const toursAleatorios = [...listaRaw].sort(() => Math.random() - 0.5);
-        setTours(toursAleatorios);
+        setTours(listaRaw);
         setLoading(false);
       })
       .catch((err) => {
@@ -126,57 +170,63 @@ function Recomendaciones({ usuario, token }) {
       });
   }, []);
 
+  // Cargar inscripciones cuando cambie el token o al enfocar la pestaña
   useEffect(() => {
-    if (!usuario || !token || token === "undefined" || token === "null") {
-      setMisInscripciones([]);
-      return;
-    }
+    cargarInscripciones();
 
-    fetch(`${BACKEND_URL}/usuarios/me/inscripciones`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => {
-        if (Array.isArray(data)) {
-          const ids = data.map((t) => t.id || t._id).filter(Boolean);
-          setMisInscripciones(ids);
-        } else {
-          setMisInscripciones([]);
-        }
-      })
-      .catch((err) => {
-        console.error("Error al cargar mis inscripciones:", err);
-        setMisInscripciones([]);
-      });
-  }, [usuario, token]);
+    const onFocus = () => cargarInscripciones();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [cargarInscripciones]);
 
   const handleToggleInscripcion = async (e, tourId) => {
     e.stopPropagation();
 
     if (!usuario || !token) {
-      alert("Debes iniciar sesión para inscribirte en un tour.");
+      alert("Debes iniciar sesión para realizar esta acción.");
       return;
     }
 
-    const estaInscripto = misInscripciones.includes(tourId);
-    setInscribiendoId(tourId);
+    const idStr = String(tourId);
+    const estaInscripto = misInscripciones.some((id) => String(id) === idStr);
+
+    setInscribiendoId(idStr);
 
     try {
       if (estaInscripto) {
-        const mensaje = await desinscribirseDeTour(tourId, token);
-        setMisInscripciones((prev) => prev.filter((id) => id !== tourId));
-        alert(mensaje || "Te has desinscrito del tour correctamente.");
+        // Desinscribir
+        const respuesta = await desinscribirseDeTour(idStr, token);
+        setMisInscripciones((prev) =>
+          prev.filter((id) => String(id) !== idStr),
+        );
+        const mensaje =
+          typeof respuesta === "string" ? respuesta : respuesta.message;
+        alert(mensaje || "Has cancelado tu inscripción al tour.");
       } else {
-        const mensaje = await inscribirseATour(tourId, token);
-        setMisInscripciones((prev) => [...prev, tourId]);
+        // Inscribir
+        const respuesta = await inscribirseATour(idStr, token);
+        setMisInscripciones((prev) => [...prev, idStr]);
+        const mensaje =
+          typeof respuesta === "string" ? respuesta : respuesta.message;
         alert(mensaje || "¡Inscripción realizada con éxito!");
       }
+
+      await cargarInscripciones();
     } catch (err) {
-      console.error("Error en la petición de inscripción:", err);
-      alert(err.message || "Ocurrió un error de conexión con el servidor.");
+      console.error("Error al modificar inscripción:", err);
+
+      // Si el backend dice que ya estás inscrito, sincronizamos el estado local
+      if (
+        err.message &&
+        err.message.toLowerCase().includes("ya estás inscrito")
+      ) {
+        alert(
+          "Ya figurabas inscrito en este tour. Se ha actualizado el botón.",
+        );
+        setMisInscripciones((prev) => [...new Set([...prev, idStr])]);
+      } else {
+        alert(err.message || "Ocurrió un error con la solicitud.");
+      }
     } finally {
       setInscribiendoId(null);
     }
@@ -185,32 +235,12 @@ function Recomendaciones({ usuario, token }) {
   if (loading) {
     return (
       <div className="flex justify-center items-center mt-20 gap-3 text-indigo-600 font-medium">
-        <svg
-          className="animate-spin h-6 w-6"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          ></circle>
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
+        <span className="animate-spin text-2xl">🌀</span>
         <span>Cargando recomendaciones...</span>
       </div>
     );
   }
 
-  // Si hay un tour seleccionado, delegamos la renderización al componente de detalle
   if (tourSeleccionado) {
     return (
       <VistaEnDetalleRecomendaciones
@@ -226,7 +256,6 @@ function Recomendaciones({ usuario, token }) {
     );
   }
 
-  // Paginación
   const indexOfLastTour = currentPage * toursPerPage;
   const indexOfFirstTour = indexOfLastTour - toursPerPage;
   const currentTours = tours.slice(indexOfFirstTour, indexOfLastTour);
@@ -235,8 +264,6 @@ function Recomendaciones({ usuario, token }) {
   const nextPage = () =>
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   const prevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
-  const goToFirst = () => setCurrentPage(1);
-  const goToLast = () => setCurrentPage(totalPages);
 
   return (
     <div className="p-6 max-w-7xl mx-auto mt-6">
@@ -252,9 +279,15 @@ function Recomendaciones({ usuario, token }) {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             {currentTours.map((tour, index) => {
-              const tourId = tour.id || tour._id || index;
-              const estaInscripto = misInscripciones.includes(tourId);
-              const estaCargando = inscribiendoId === tourId;
+              const idRaw = tour.id || tour._id;
+              const tourIdStr = String(idRaw);
+
+              // Comprobación estricta parseando ambos a String
+              const estaInscripto = misInscripciones.some(
+                (insId) => String(insId) === tourIdStr,
+              );
+
+              const estaCargando = inscribiendoId === tourIdStr;
 
               const nombre = tour.nombre || tour.titulo || "Tour sin título";
               const descripcion =
@@ -278,7 +311,7 @@ function Recomendaciones({ usuario, token }) {
 
               return (
                 <div
-                  key={`rec-tour-${tourId}-${index}`}
+                  key={`rec-tour-${tourIdStr}-${index}`}
                   onClick={() => setTourSeleccionado(tour)}
                   className="group bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden cursor-pointer"
                 >
@@ -297,8 +330,8 @@ function Recomendaciones({ usuario, token }) {
 
                     <div className="absolute top-3 right-3 z-10">
                       <BotonFavorito
-                        tourId={tourId}
-                        esFavorito={favoritosIds.includes(tourId)}
+                        tourId={idRaw}
+                        esFavorito={favoritosIds.includes(idRaw)}
                         onToggle={toggleFavorito}
                       />
                     </div>
@@ -337,12 +370,13 @@ function Recomendaciones({ usuario, token }) {
                       </div>
                     </div>
 
+                    {/* BOTÓN CON LÓGICA DE INSCRITO / CANCELAR */}
                     <button
-                      onClick={(e) => handleToggleInscripcion(e, tourId)}
+                      onClick={(e) => handleToggleInscripcion(e, tourIdStr)}
                       disabled={estaCargando}
                       className={`w-full py-2.5 px-4 rounded-xl font-bold text-sm transition duration-150 cursor-pointer flex items-center justify-center gap-2 ${
                         estaInscripto
-                          ? "bg-slate-100 hover:bg-rose-50 text-rose-700 border border-slate-200 hover:border-rose-300"
+                          ? "bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300"
                           : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs"
                       } ${estaCargando ? "opacity-60 cursor-not-allowed" : ""}`}
                     >
@@ -350,7 +384,7 @@ function Recomendaciones({ usuario, token }) {
                         <span>Procesando...</span>
                       ) : estaInscripto ? (
                         <>
-                          <span>✓</span> Inscrito (Cancelar)
+                          <span>❌</span> Cancelar inscripción
                         </>
                       ) : (
                         <>
@@ -364,21 +398,12 @@ function Recomendaciones({ usuario, token }) {
             })}
           </div>
 
-          {/* Paginación */}
           {totalPages > 1 && (
             <div className="flex flex-wrap justify-center items-center gap-2 pt-4 border-t border-slate-200">
               <button
-                onClick={goToFirst}
-                disabled={currentPage === 1}
-                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition cursor-pointer"
-              >
-                ⏮️ Inicio
-              </button>
-
-              <button
                 onClick={prevPage}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition cursor-pointer"
+                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 cursor-pointer"
               >
                 ◀️ Anterior
               </button>
@@ -392,17 +417,9 @@ function Recomendaciones({ usuario, token }) {
               <button
                 onClick={nextPage}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition cursor-pointer"
+                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 cursor-pointer"
               >
                 Siguiente ▶️
-              </button>
-
-              <button
-                onClick={goToLast}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1.5 text-sm bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg disabled:opacity-40 disabled:hover:bg-indigo-50 transition cursor-pointer"
-              >
-                ⏭️ Final
               </button>
             </div>
           )}

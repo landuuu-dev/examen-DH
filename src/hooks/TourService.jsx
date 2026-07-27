@@ -1,23 +1,36 @@
-// src/services/TourService.jsx (o TourService.js)
+// src/services/TourService.jsx
 
 const BACKEND_URL = "https://backend-examen-dh.onrender.com";
+
+// Helper para procesar respuestas de error o éxito
+const procesarRespuesta = async (response) => {
+  const text = await response.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = text;
+  }
+
+  if (!response.ok) {
+    const errorMsg =
+      typeof data === "object" && data.message ? data.message : text;
+    throw new Error(errorMsg || "Ocurrió un error en la solicitud.");
+  }
+
+  return data;
+};
 
 // 1. Obtener todos los tours
 export const obtenerTours = async () => {
   const response = await fetch(`${BACKEND_URL}/tours`);
-  if (!response.ok) {
-    throw new Error("Error al obtener la lista de tours.");
-  }
-  return await response.json();
+  return await procesarRespuesta(response);
 };
 
 // 2. Obtener tours por categoría
 export const obtenerToursPorCategoria = async (categoriaId) => {
   const response = await fetch(`${BACKEND_URL}/tours/categoria/${categoriaId}`);
-  if (!response.ok) {
-    throw new Error("Error al obtener los tours de la categoría.");
-  }
-  return await response.json();
+  return await procesarRespuesta(response);
 };
 
 // 3. Inscribirse a un tour
@@ -30,12 +43,7 @@ export const inscribirseATour = async (tourId, token) => {
     },
   });
 
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(errorData || "Error al inscribirse en el tour.");
-  }
-
-  return await response.text();
+  return await procesarRespuesta(response);
 };
 
 // 4. Cancelar/Desinscribirse de un tour
@@ -50,10 +58,5 @@ export const desinscribirseDeTour = async (tourId, token) => {
     },
   );
 
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(errorData || "Error al cancelar la inscripción.");
-  }
-
-  return await response.text();
+  return await procesarRespuesta(response);
 };
